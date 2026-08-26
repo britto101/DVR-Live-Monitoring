@@ -123,16 +123,6 @@ def initialize_state():
     if "edit_candidates" not in st.session_state:
         st.session_state.edit_candidates = []
 
-    if "load_error" not in st.session_state:
-        st.session_state.load_error = ""
-
-    if "last_message" not in st.session_state:
-        st.session_state.last_message = ""
-
-    # ========================================================
-    # INDIVIDUAL EDIT ENABLE STATES
-    # ========================================================
-
     if "edit_store_enabled" not in st.session_state:
         st.session_state.edit_store_enabled = False
 
@@ -171,12 +161,14 @@ def initialize_state():
             ]
         )
 
-    # ========================================================
-    # LOG PANEL
-    # ========================================================
-
     if "show_log" not in st.session_state:
         st.session_state.show_log = False
+
+    if "show_updated_file" not in st.session_state:
+        st.session_state.show_updated_file = False
+
+    if "load_error" not in st.session_state:
+        st.session_state.load_error = ""
 
 
 initialize_state()
@@ -467,6 +459,8 @@ def load_uploaded_file(uploaded_file):
         st.session_state.uploaded_file_name = uploaded_file.name
 
         st.session_state.file_updated = False
+
+        st.session_state.show_updated_file = False
 
         st.session_state.updated_changes = []
 
@@ -1079,26 +1073,15 @@ def add_monitor_log(
             }]
         )
 
-        if (
-            "monitor_log"
-            not in st.session_state
-        ):
-
-            st.session_state.monitor_log = (
-                new_log
+        st.session_state.monitor_log = (
+            pd.concat(
+                [
+                    st.session_state.monitor_log,
+                    new_log
+                ],
+                ignore_index=True
             )
-
-        else:
-
-            st.session_state.monitor_log = (
-                pd.concat(
-                    [
-                        st.session_state.monitor_log,
-                        new_log
-                    ],
-                    ignore_index=True
-                )
-            )
+        )
 
     except Exception as e:
 
@@ -1263,13 +1246,8 @@ def get_counts():
         return {
             "total": 0,
             "online": 0,
-            "offline": 0,
-            "checking": 0,
-            "not_checked": 0
+            "offline": 0
         }
-
-    if "Status" not in data.columns:
-        data["Status"] = "Not Checked"
 
     return {
 
@@ -1287,20 +1265,6 @@ def get_counts():
                 data["Status"]
                 == "Offline"
             ).sum()
-        ),
-
-        "checking": int(
-            (
-                data["Status"]
-                == "Checking..."
-            ).sum()
-        ),
-
-        "not_checked": int(
-            (
-                data["Status"]
-                == "Not Checked"
-            ).sum()
         )
     }
 
@@ -1315,35 +1279,30 @@ def apply_css():
         """
         <style>
 
-        /* =====================================================
-           MAIN APP
-        ===================================================== */
+        /* ====================================================
+           GLOBAL DARK MODE
+           ==================================================== */
 
         .stApp {
-            background:#0f1415 !important;
-            color:#f1f5f5 !important;
+            background-color:#0b1112 !important;
+            color:#f5f7f7 !important;
         }
 
         [data-testid="stAppViewContainer"] {
-            background:#0f1415 !important;
+            background-color:#0b1112 !important;
+        }
+
+        [data-testid="stMain"] {
+            background-color:#0b1112 !important;
         }
 
         [data-testid="stHeader"] {
-            background:#0f1415 !important;
+            background-color:#0b1112 !important;
         }
 
-        [data-testid="stToolbar"] {
-            background:#0f1415 !important;
-        }
-
-        body {
-            background:#0f1415 !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            HEADER
-        ===================================================== */
+           ==================================================== */
 
         .main-header {
             background:#007e82 !important;
@@ -1354,63 +1313,61 @@ def apply_css():
         }
 
         .main-title-text {
+            color:#ffffff !important;
             font-size:28px;
             font-weight:700;
-            color:#ffffff !important;
         }
 
         .main-subtitle {
+            color:#c8eeee !important;
             font-size:13px;
-            color:#b8eeee !important;
             margin-top:4px;
         }
 
-
-        /* =====================================================
+        /* ====================================================
            METRICS
-        ===================================================== */
+           ==================================================== */
 
         .metric-card {
             border-radius:10px;
             padding:18px;
             min-height:110px;
             color:#ffffff !important;
-            box-shadow:0 3px 8px rgba(0,0,0,.35);
+            box-shadow:0 3px 8px rgba(0,0,0,.45);
         }
 
         .metric-title {
+            color:#ffffff !important;
             font-size:13px;
             font-weight:700;
-            color:#ffffff !important;
         }
 
         .metric-value {
+            color:#ffffff !important;
             font-size:34px;
             font-weight:700;
             margin-top:10px;
-            color:#ffffff !important;
         }
 
         .metric-total {
-            background:#00a7a5 !important;
+            background:#008f91 !important;
         }
 
         .metric-online {
-            background:#159447 !important;
+            background:#168b45 !important;
         }
 
         .metric-offline {
-            background:#d9363e !important;
+            background:#c9343d !important;
         }
 
-
-        /* =====================================================
-           SECTION BOX
-        ===================================================== */
+        /* ====================================================
+           SECTION
+           ==================================================== */
 
         .section-box {
-            background:#171e20 !important;
-            border:1px solid #303a3c !important;
+            background:#151d1f !important;
+            border:1px solid #344143 !important;
             border-radius:10px;
             padding:14px;
             margin-bottom:14px;
@@ -1423,423 +1380,299 @@ def apply_css():
             margin-bottom:8px;
         }
 
+        /* ====================================================
+           ALL BUTTONS
+           ==================================================== */
 
-        /* =====================================================
-           BUTTONS
-        ===================================================== */
+        div.stButton > button {
+            width:100% !important;
+            min-height:40px !important;
 
-        button {
+            background-color:#263235 !important;
+
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+
+            border:1px solid #526265 !important;
             border-radius:7px !important;
+
+            font-size:14px !important;
+            font-weight:700 !important;
+
+            box-shadow:none !important;
+        }
+
+        div.stButton > button p {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
             font-weight:700 !important;
         }
 
-        button p {
-            font-weight:700 !important;
+        div.stButton > button span {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
+        div.stButton > button:hover {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            background-color:#304043 !important;
+            border-color:#00a7a5 !important;
+        }
 
-        /* =====================================================
+        div.stButton > button:focus {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            box-shadow:0 0 0 2px rgba(0,167,165,.35) !important;
+        }
+
+        /* ====================================================
            LOAD
-        ===================================================== */
+           ==================================================== */
 
-        .load-button button,
-        .load-button div[data-testid="stPopover"] > button {
-            background:#1769aa !important;
+        .load-button div.stButton > button {
+            background-color:#1769aa !important;
             color:#ffffff !important;
-            border:1px solid #1769aa !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#1769aa !important;
         }
 
-        .load-button button *,
-        .load-button div[data-testid="stPopover"] > button * {
+        .load-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .load-button button:hover,
-        .load-button div[data-testid="stPopover"] > button:hover {
-            background:#0d568e !important;
-            color:#ffffff !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            CHECK
-        ===================================================== */
+           ==================================================== */
 
-        .check-button button {
-            background:#159447 !important;
+        .check-button div.stButton > button {
+            background-color:#159447 !important;
             color:#ffffff !important;
-            border:1px solid #159447 !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#159447 !important;
         }
 
-        .check-button button * {
+        .check-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .check-button button:hover {
-            background:#107638 !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            LOG
-        ===================================================== */
+           ==================================================== */
 
-        .log-button button {
-            background:#007e82 !important;
+        .log-button div.stButton > button {
+            background-color:#007e82 !important;
             color:#ffffff !important;
-            border:1px solid #007e82 !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#007e82 !important;
         }
 
-        .log-button button * {
+        .log-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .log-button button:hover {
-            background:#006568 !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            EDIT
-        ===================================================== */
+           ==================================================== */
 
-        .edit-button button {
-            background:#f39c12 !important;
+        .edit-button div.stButton > button {
+            background-color:#f39c12 !important;
             color:#ffffff !important;
-            border:1px solid #f39c12 !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#f39c12 !important;
         }
 
-        .edit-button button * {
+        .edit-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .edit-button button:hover {
-            background:#d98200 !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            REFRESH
-        ===================================================== */
+           ==================================================== */
 
-        .refresh-button button {
-            background:#d9363e !important;
+        .refresh-button div.stButton > button {
+            background-color:#d9363e !important;
             color:#ffffff !important;
-            border:1px solid #d9363e !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#d9363e !important;
         }
 
-        .refresh-button button * {
+        .refresh-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .refresh-button button:hover {
-            background:#b52b33 !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            SAVE
-        ===================================================== */
+           ==================================================== */
 
-        .save-button button {
-            background:#159447 !important;
+        .save-button div.stButton > button {
+            background-color:#159447 !important;
             color:#ffffff !important;
-            border:1px solid #159447 !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#159447 !important;
         }
 
-        .save-button button * {
+        .save-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
+        /* ====================================================
+           CLOSE
+           ==================================================== */
 
-        /* =====================================================
-           CANCEL / CLOSE
-        ===================================================== */
-
-        .cancel-button button,
-        .close-button button {
-            background:#607d8b !important;
+        .cancel-button div.stButton > button {
+            background-color:#607d8b !important;
             color:#ffffff !important;
-            border:1px solid #607d8b !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#607d8b !important;
         }
 
-        .cancel-button button *,
-        .close-button button * {
+        .cancel-button div.stButton > button p {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .cancel-button button:hover,
-        .close-button button:hover {
-            background:#455a64 !important;
-        }
-
-
-        /* =====================================================
-           SELECT
-        ===================================================== */
-
-        .select-button button {
-            background:#1769aa !important;
-            color:#ffffff !important;
-            border:1px solid #1769aa !important;
-        }
-
-        .select-button button * {
-            color:#ffffff !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            PENCIL
-        ===================================================== */
+           ==================================================== */
 
-        .pencil-button button {
-            background:#f39c12 !important;
+        .pencil-button div.stButton > button {
+            background-color:#f39c12 !important;
             color:#ffffff !important;
-            border:1px solid #f39c12 !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#f39c12 !important;
+
             min-height:38px !important;
             font-size:16px !important;
         }
 
-        .pencil-button button * {
-            color:#ffffff !important;
-        }
-
-        .pencil-button button:hover {
-            background:#d98200 !important;
-        }
-
-
-        /* =====================================================
-           DOWNLOAD
-        ===================================================== */
-
-        .download-button button,
-        div[data-testid="stDownloadButton"] button {
-            background:#007e82 !important;
-            color:#ffffff !important;
-            border:1px solid #007e82 !important;
-        }
-
-        .download-button button *,
-        div[data-testid="stDownloadButton"] button * {
-            color:#ffffff !important;
-        }
-
-        div[data-testid="stDownloadButton"] button:hover {
-            background:#006568 !important;
-        }
-
-
-        /* =====================================================
-           SEARCH BAR
-        ===================================================== */
-
-        div[data-testid="stTextInput"] div[data-baseweb="input"] {
-            background:#263235 !important;
-            border:1px solid #46575a !important;
-            border-radius:7px !important;
-        }
-
-        div[data-testid="stTextInput"] div[data-baseweb="input"] > div {
-            background:#263235 !important;
-        }
-
-        div[data-testid="stTextInput"] input {
-            background:#263235 !important;
+        .pencil-button div.stButton > button p {
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
-            caret-color:#ffffff !important;
         }
 
-        div[data-testid="stTextInput"] input::placeholder {
-            color:#9aa7aa !important;
-            opacity:1 !important;
+        /* ====================================================
+           SELECT
+           ==================================================== */
+
+        .select-button div.stButton > button {
+            background-color:#1769aa !important;
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border-color:#1769aa !important;
         }
 
-        div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
-            background:#263235 !important;
-            border:1px solid #00a7a5 !important;
-            box-shadow:0 0 0 1px #00a7a5 !important;
+        .select-button div.stButton > button p {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
+        /* ====================================================
+           DOWNLOAD
+           ==================================================== */
 
-        /* =====================================================
-           ALL INPUTS
-        ===================================================== */
+        div.stDownloadButton > button {
+            background-color:#007e82 !important;
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border:1px solid #007e82 !important;
+            border-radius:7px !important;
+            font-weight:700 !important;
+        }
+
+        div.stDownloadButton > button p {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+        }
+
+        div.stDownloadButton > button span {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+        }
+
+        /* ====================================================
+           TEXT INPUT
+           ==================================================== */
 
         div[data-baseweb="input"] {
-            background:#263235 !important;
+            background-color:#202a2c !important;
             border:1px solid #46575a !important;
             border-radius:7px !important;
-        }
-
-        div[data-baseweb="input"] > div {
-            background:#263235 !important;
         }
 
         div[data-baseweb="input"] input {
+            background-color:#202a2c !important;
             color:#ffffff !important;
-            background:#263235 !important;
             -webkit-text-fill-color:#ffffff !important;
         }
 
         div[data-baseweb="input"] input::placeholder {
-            color:#9aa7aa !important;
+            color:#9ba7aa !important;
+            -webkit-text-fill-color:#9ba7aa !important;
         }
 
-
-        /* =====================================================
-           DISABLED INPUT
-        ===================================================== */
-
-        div[data-baseweb="input"]:has(input:disabled) {
-            background:#20292b !important;
-            border:1px solid #384548 !important;
-        }
-
-        div[data-baseweb="input"]:has(input:disabled) > div {
-            background:#20292b !important;
+        div[data-baseweb="input"]:focus-within {
+            border:1px solid #00a7a5 !important;
+            box-shadow:0 0 0 1px #00a7a5 !important;
         }
 
         div[data-baseweb="input"] input:disabled {
-            color:#9ba7aa !important;
-            -webkit-text-fill-color:#9ba7aa !important;
-            background:#20292b !important;
+            background-color:#171f21 !important;
+            color:#8d999c !important;
+            -webkit-text-fill-color:#8d999c !important;
             opacity:1 !important;
-            cursor:not-allowed !important;
         }
 
+        /* ====================================================
+           SELECTBOX
+           ==================================================== */
 
-        /* =====================================================
-           STATUS DROPDOWN
-        ===================================================== */
-
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-            background:#263235 !important;
-            border-radius:7px !important;
-        }
-
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-            background:#263235 !important;
+        div[data-baseweb="select"] > div {
+            background-color:#202a2c !important;
             border:1px solid #46575a !important;
             color:#ffffff !important;
         }
 
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
+        div[data-baseweb="select"] span {
             color:#ffffff !important;
         }
 
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] input {
+        div[data-baseweb="select"] input {
             color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-
-        /* =====================================================
-           DROPDOWN OPTIONS
-        ===================================================== */
+        /* ====================================================
+           DROPDOWN
+           ==================================================== */
 
         div[data-baseweb="popover"] {
-            background:#171e20 !important;
+            background-color:#171e20 !important;
         }
 
-        div[data-baseweb="menu"] {
-            background:#171e20 !important;
-            border:1px solid #46575a !important;
+        ul[role="listbox"] {
+            background-color:#171e20 !important;
         }
 
-        div[data-baseweb="menu"] li {
-            background:#171e20 !important;
+        li[role="option"] {
+            background-color:#171e20 !important;
             color:#ffffff !important;
         }
 
-        div[data-baseweb="menu"] li:hover {
-            background:#263235 !important;
+        li[role="option"]:hover {
+            background-color:#263638 !important;
             color:#ffffff !important;
         }
 
-        div[data-baseweb="menu"] li * {
-            color:#ffffff !important;
-        }
-
-
-        /* =====================================================
-           FILE UPLOADER
-        ===================================================== */
-
-        div[data-testid="stPopoverBody"] {
-            background:#171e20 !important;
-        }
-
-        section[data-testid="stFileUploaderDropzone"] {
-            background:#20292b !important;
-            border:1px dashed #46575a !important;
-        }
-
-        section[data-testid="stFileUploaderDropzone"] * {
-            color:#ffffff !important;
-        }
-
-        section[data-testid="stFileUploaderDropzone"] button {
-            background:#1769aa !important;
-            color:#ffffff !important;
-            border:1px solid #1769aa !important;
-        }
-
-
-        /* =====================================================
-           DATAFRAME
-        ===================================================== */
-
-        div[data-testid="stDataFrame"] {
-            background:#171e20 !important;
-            border:1px solid #303a3c !important;
-            border-radius:8px !important;
-            overflow:hidden !important;
-        }
-
-        div[data-testid="stDataFrame"] > div {
-            background:#171e20 !important;
-        }
-
-        div[data-testid="stDataFrame"] iframe {
-            background:#171e20 !important;
-        }
-
-        [data-testid="stDataFrame"] [role="grid"] {
-            background:#171e20 !important;
-            color:#ffffff !important;
-        }
-
-        [data-testid="stDataFrame"] [role="columnheader"] {
-            background:#20292b !important;
-            color:#ffffff !important;
-        }
-
-        [data-testid="stDataFrame"] [role="gridcell"] {
-            background:#171e20 !important;
-            color:#ffffff !important;
-        }
-
-
-        /* =====================================================
-           DATAFRAME TOOLBAR
-        ===================================================== */
-
-        [data-testid="stDataFrame"] button {
-            color:#ffffff !important;
-            background:#263235 !important;
-        }
-
-        [data-testid="stDataFrame"] button svg {
-            fill:#ffffff !important;
-            color:#ffffff !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            LABELS
-        ===================================================== */
+           ==================================================== */
 
         label {
             color:#d9e1e2 !important;
@@ -1849,19 +1682,53 @@ def apply_css():
             color:#d9e1e2 !important;
         }
 
-
-        /* =====================================================
-           CAPTION
-        ===================================================== */
-
         .stCaption {
             color:#9ba7aa !important;
         }
 
+        /* ====================================================
+           FILE UPLOADER
+           ==================================================== */
 
-        /* =====================================================
-           GENERAL TEXT
-        ===================================================== */
+        section[data-testid="stFileUploaderDropzone"] {
+            background-color:#202a2c !important;
+            border:1px dashed #526265 !important;
+        }
+
+        section[data-testid="stFileUploaderDropzone"] * {
+            color:#ffffff !important;
+        }
+
+        /* ====================================================
+           DATAFRAME
+           ==================================================== */
+
+        div[data-testid="stDataFrame"] {
+            background-color:#151d1f !important;
+            border:1px solid #344143 !important;
+            border-radius:8px !important;
+            overflow:hidden !important;
+        }
+
+        div[data-testid="stDataFrame"] iframe {
+            background-color:#151d1f !important;
+        }
+
+        [data-testid="stDataFrame"] * {
+            scrollbar-color:#46575a #151d1f;
+        }
+
+        /* ====================================================
+           ALERTS
+           ==================================================== */
+
+        div[data-testid="stAlert"] {
+            border-radius:9px !important;
+        }
+
+        /* ====================================================
+           MARKDOWN
+           ==================================================== */
 
         .stMarkdown,
         .stMarkdown p,
@@ -1869,19 +1736,9 @@ def apply_css():
             color:#f1f5f5;
         }
 
-
-        /* =====================================================
-           ALERTS
-        ===================================================== */
-
-        div[data-testid="stAlert"] {
-            border-radius:9px !important;
-        }
-
-
-        /* =====================================================
+        /* ====================================================
            SCROLLBAR
-        ===================================================== */
+           ==================================================== */
 
         ::-webkit-scrollbar {
             width:8px;
@@ -1889,16 +1746,12 @@ def apply_css():
         }
 
         ::-webkit-scrollbar-track {
-            background:#171e20;
+            background:#101617;
         }
 
         ::-webkit-scrollbar-thumb {
             background:#46575a;
-            border-radius:8px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background:#607174;
+            border-radius:5px;
         }
 
         </style>
@@ -1991,7 +1844,6 @@ def render_metrics():
 
 # ============================================================
 # UPDATED EXCEL
-# NO STATUS
 # ============================================================
 
 def create_updated_excel():
@@ -2000,12 +1852,11 @@ def create_updated_excel():
 
     data = st.session_state.dvr_data.copy()
 
-    # Updated file should contain ONLY:
-    # Store ID
-    # Site Name
-    # DVR Number
+    # UPDATED FILE:
+    # Only Store ID, Site Name and DVR Number.
+    # Status is NOT included in this updated file.
 
-    download_data = data[
+    data = data[
         [
             "Store ID",
             "Site Name",
@@ -2018,7 +1869,7 @@ def create_updated_excel():
         engine="openpyxl"
     ) as writer:
 
-        download_data.to_excel(
+        data.to_excel(
             writer,
             index=False,
             sheet_name="DVR Data"
@@ -2031,14 +1882,13 @@ def create_updated_excel():
 
 # ============================================================
 # UPDATED CSV
-# NO STATUS
 # ============================================================
 
 def create_updated_csv():
 
     data = st.session_state.dvr_data.copy()
 
-    download_data = data[
+    data = data[
         [
             "Store ID",
             "Site Name",
@@ -2046,14 +1896,13 @@ def create_updated_csv():
         ]
     ].copy()
 
-    return download_data.to_csv(
+    return data.to_csv(
         index=False
     ).encode("utf-8")
 
 
 # ============================================================
-# CURRENT TABLE DOWNLOAD
-# INCLUDING STATUS
+# CURRENT DVR TABLE DOWNLOAD
 # ============================================================
 
 def create_current_excel():
@@ -2062,7 +1911,10 @@ def create_current_excel():
 
     data = st.session_state.dvr_data.copy()
 
-    download_data = data[
+    # CURRENT TABLE DOWNLOAD:
+    # Includes Status.
+
+    data = data[
         [
             "Store ID",
             "Site Name",
@@ -2076,10 +1928,10 @@ def create_current_excel():
         engine="openpyxl"
     ) as writer:
 
-        download_data.to_excel(
+        data.to_excel(
             writer,
             index=False,
-            sheet_name="Current DVR Table"
+            sheet_name="Current DVR Data"
         )
 
     output.seek(0)
@@ -2091,7 +1943,7 @@ def create_current_csv():
 
     data = st.session_state.dvr_data.copy()
 
-    download_data = data[
+    data = data[
         [
             "Store ID",
             "Site Name",
@@ -2100,7 +1952,7 @@ def create_current_csv():
         ]
     ].copy()
 
-    return download_data.to_csv(
+    return data.to_csv(
         index=False
     ).encode("utf-8")
 
@@ -2111,7 +1963,7 @@ def create_current_csv():
 
 def render_updated_file():
 
-    if not st.session_state.file_updated:
+    if not st.session_state.show_updated_file:
         return
 
     st.markdown(
@@ -2133,14 +1985,14 @@ def render_updated_file():
     with close_col:
 
         st.markdown(
-            '<div class="close-button">',
+            '<div class="cancel-button">',
             unsafe_allow_html=True
         )
 
         close_updated = st.button(
-            "✖ Close",
-            use_container_width=True,
-            key="close_updated_file"
+            "✖",
+            key="close_updated_file",
+            use_container_width=True
         )
 
         st.markdown(
@@ -2150,9 +2002,8 @@ def render_updated_file():
 
     if close_updated:
 
+        st.session_state.show_updated_file = False
         st.session_state.file_updated = False
-        st.session_state.updated_changes = []
-
         st.rerun()
 
     changes = st.session_state.updated_changes
@@ -2243,8 +2094,9 @@ def render_toolbar():
         [
             1.15,
             1.35,
-            1.15,
-            3.7,
+            1.25,
+            1.25,
+            3.0,
             1.25
         ]
     )
@@ -2305,7 +2157,7 @@ def render_toolbar():
         )
 
     # ========================================================
-    # LOG BUTTON
+    # LOG
     # ========================================================
 
     with columns[2]:
@@ -2320,7 +2172,7 @@ def render_toolbar():
             use_container_width=True,
             key="toolbar_log",
             disabled=(
-                st.session_state.monitor_log.empty
+                st.session_state.dvr_data.empty
             )
         )
 
@@ -2330,18 +2182,10 @@ def render_toolbar():
         )
 
     # ========================================================
-    # SPACER
-    # ========================================================
-
-    with columns[3]:
-
-        st.write("")
-
-    # ========================================================
     # REFRESH
     # ========================================================
 
-    with columns[4]:
+    with columns[3]:
 
         st.markdown(
             '<div class="refresh-button">',
@@ -2365,17 +2209,43 @@ def render_toolbar():
         )
 
     # ========================================================
-    # LOG CLICK
+    # SPACER
     # ========================================================
 
-    if log_clicked:
+    with columns[4]:
 
-        st.session_state.show_log = True
-
-        st.rerun()
+        st.write("")
 
     # ========================================================
-    # CHECK
+    # UPDATED FILE BUTTON
+    # ========================================================
+
+    with columns[5]:
+
+        if st.session_state.file_updated:
+
+            st.markdown(
+                '<div class="download-button">',
+                unsafe_allow_html=True
+            )
+
+            updated_clicked = st.button(
+                "💾 Updated File",
+                use_container_width=True,
+                key="toolbar_updated_file"
+            )
+
+            st.markdown(
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        else:
+
+            updated_clicked = False
+
+    # ========================================================
+    # ACTIONS
     # ========================================================
 
     if check_clicked:
@@ -2384,13 +2254,21 @@ def render_toolbar():
 
         st.rerun()
 
-    # ========================================================
-    # REFRESH
-    # ========================================================
-
     if refresh_clicked:
 
         run_check_all()
+
+        st.rerun()
+
+    if log_clicked:
+
+        st.session_state.show_log = True
+
+        st.rerun()
+
+    if updated_clicked:
+
+        st.session_state.show_updated_file = True
 
         st.rerun()
 
@@ -2420,7 +2298,7 @@ def render_search():
 
     columns = st.columns(
         [
-            4.5,
+            5.5,
             1.5,
             1.2
         ]
@@ -2442,7 +2320,6 @@ def render_search():
 
     # ========================================================
     # STATUS
-    # ONLY ALL / ONLINE / OFFLINE
     # ========================================================
 
     with columns[1]:
@@ -2463,24 +2340,58 @@ def render_search():
 
     with columns[2]:
 
-        st.markdown(
-            '<div class="edit-button">',
-            unsafe_allow_html=True
-        )
+        if st.session_state.edit_mode:
 
-        edit_clicked = st.button(
-            "✏️ Edit",
-            use_container_width=True,
-            key="search_edit",
-            disabled=(
-                st.session_state.dvr_data.empty
+            st.markdown(
+                '<div class="cancel-button">',
+                unsafe_allow_html=True
             )
-        )
 
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
+            close_edit_clicked = st.button(
+                "✖ Close Edit",
+                use_container_width=True,
+                key="search_close_edit"
+            )
+
+            st.markdown(
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            edit_clicked = False
+
+        else:
+
+            st.markdown(
+                '<div class="edit-button">',
+                unsafe_allow_html=True
+            )
+
+            edit_clicked = st.button(
+                "✏️ Edit",
+                use_container_width=True,
+                key="search_edit",
+                disabled=(
+                    st.session_state.dvr_data.empty
+                )
+            )
+
+            st.markdown(
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            close_edit_clicked = False
+
+    # ========================================================
+    # CLOSE EDIT
+    # ========================================================
+
+    if close_edit_clicked:
+
+        reset_edit_state()
+
+        st.rerun()
 
     # ========================================================
     # EDIT CLICK
@@ -2688,21 +2599,21 @@ def style_status(value):
     if value == "Online":
 
         return (
-            "color:#159447;"
+            "color:#21d66b;"
             "font-weight:bold;"
         )
 
     if value == "Offline":
 
         return (
-            "color:#d9363e;"
+            "color:#ff5964;"
             "font-weight:bold;"
         )
 
     if value == "Checking...":
 
         return (
-            "color:#f39c12;"
+            "color:#4aa3ff;"
             "font-weight:bold;"
         )
 
@@ -2740,14 +2651,14 @@ def render_edit():
     with close_col:
 
         st.markdown(
-            '<div class="close-button">',
+            '<div class="cancel-button">',
             unsafe_allow_html=True
         )
 
-        close_edit = st.button(
-            "✖ Close",
-            use_container_width=True,
-            key="close_edit_panel"
+        close_clicked = st.button(
+            "✖",
+            key="close_edit_panel",
+            use_container_width=True
         )
 
         st.markdown(
@@ -2755,7 +2666,7 @@ def render_edit():
             unsafe_allow_html=True
         )
 
-    if close_edit:
+    if close_clicked:
 
         reset_edit_state()
 
@@ -3116,7 +3027,7 @@ def render_edit():
         )
 
         cancel_clicked = st.button(
-            "✖ Cancel",
+            "✖ Close Edit",
             use_container_width=True,
             key="cancel_edit_dvr"
         )
@@ -3164,10 +3075,6 @@ def render_edit():
 
             return
 
-        # ====================================================
-        # FIND CHANGES
-        # ====================================================
-
         changes = []
 
         if old_store_id != new_store_id:
@@ -3199,10 +3106,6 @@ def render_edit():
                     "New Value": new_dvr_number or "-"
                 }
             )
-
-        # ====================================================
-        # NO CHANGES
-        # ====================================================
 
         if not changes:
 
@@ -3242,6 +3145,8 @@ def render_edit():
 
         st.session_state.file_updated = True
 
+        st.session_state.show_updated_file = True
+
         st.session_state.updated_changes = changes
 
         original_name = (
@@ -3266,16 +3171,12 @@ def render_edit():
             f"{base_name}_UPDATED.xlsx"
         )
 
-        # ====================================================
-        # CLOSE EDIT
-        # ====================================================
-
         reset_edit_state()
 
         st.rerun()
 
     # ========================================================
-    # CANCEL
+    # CLOSE EDIT
     # ========================================================
 
     if cancel_clicked:
@@ -3318,14 +3219,14 @@ def render_monitor_log():
     with close_col:
 
         st.markdown(
-            '<div class="close-button">',
+            '<div class="cancel-button">',
             unsafe_allow_html=True
         )
 
-        close_log = st.button(
-            "✖ Close",
-            use_container_width=True,
-            key="close_log_panel"
+        close_log_clicked = st.button(
+            "✖",
+            key="close_log",
+            use_container_width=True
         )
 
         st.markdown(
@@ -3333,7 +3234,7 @@ def render_monitor_log():
             unsafe_allow_html=True
         )
 
-    if close_log:
+    if close_log_clicked:
 
         st.session_state.show_log = False
 
@@ -3344,7 +3245,8 @@ def render_monitor_log():
     if log_data.empty:
 
         st.info(
-            "No Online / Offline log available yet."
+            "No Online / Offline log available yet. "
+            "Run Check All or Refresh."
         )
 
     else:
@@ -3382,7 +3284,7 @@ def render_monitor_log():
 
 
 # ============================================================
-# CURRENT TABLE
+# TABLE
 # ============================================================
 
 def render_table(
@@ -3395,7 +3297,7 @@ def render_table(
     )
 
     # ========================================================
-    # TABLE HEADER + DOWNLOAD
+    # TABLE TITLE + DOWNLOAD
     # ========================================================
 
     title_col, download_col = st.columns(
@@ -3411,38 +3313,19 @@ def render_table(
 
     with download_col:
 
-        download_col1, download_col2 = st.columns(
-            2
+        download_excel = create_current_excel()
+
+        st.download_button(
+            "📥 Download Current DVR Table",
+            data=download_excel,
+            file_name="Current_DVR_Table.xlsx",
+            mime=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            use_container_width=True,
+            key="download_current_dvr_excel"
         )
-
-        with download_col1:
-
-            current_excel = create_current_excel()
-
-            st.download_button(
-                "📥 Excel",
-                data=current_excel,
-                file_name="DVR_Current_Table.xlsx",
-                mime=(
-                    "application/vnd.openxmlformats-officedocument."
-                    "spreadsheetml.sheet"
-                ),
-                use_container_width=True,
-                key="download_current_excel"
-            )
-
-        with download_col2:
-
-            current_csv = create_current_csv()
-
-            st.download_button(
-                "📥 CSV",
-                data=current_csv,
-                file_name="DVR_Current_Table.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_current_csv"
-            )
 
     if filtered_data.empty:
 
@@ -3690,7 +3573,7 @@ def main():
     )
 
     # ========================================================
-    # MONITORING LOG
+    # LOG
     # ========================================================
 
     render_monitor_log()
