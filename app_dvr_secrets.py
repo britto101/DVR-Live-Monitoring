@@ -123,13 +123,6 @@ def initialize_state():
     if "edit_candidates" not in st.session_state:
         st.session_state.edit_candidates = []
 
-    if "load_error" not in st.session_state:
-        st.session_state.load_error = ""
-
-    # ========================================================
-    # INDIVIDUAL EDIT ENABLE STATES
-    # ========================================================
-
     if "edit_store_enabled" not in st.session_state:
         st.session_state.edit_store_enabled = False
 
@@ -140,7 +133,7 @@ def initialize_state():
         st.session_state.edit_dvr_enabled = False
 
     # ========================================================
-    # UPDATED FILE STATE
+    # UPDATED FILE
     # ========================================================
 
     if "file_updated" not in st.session_state:
@@ -153,11 +146,8 @@ def initialize_state():
         st.session_state.updated_file_name = ""
 
     # ========================================================
-    # LOG STATE
+    # MONITORING LOG
     # ========================================================
-
-    if "show_log" not in st.session_state:
-        st.session_state.show_log = False
 
     if "monitor_log" not in st.session_state:
         st.session_state.monitor_log = pd.DataFrame(
@@ -170,6 +160,16 @@ def initialize_state():
                 "Status"
             ]
         )
+
+    if "show_log" not in st.session_state:
+        st.session_state.show_log = False
+
+    # ========================================================
+    # THEME
+    # ========================================================
+
+    if "theme_mode" not in st.session_state:
+        st.session_state.theme_mode = "Dark"
 
 
 initialize_state()
@@ -384,7 +384,7 @@ def load_uploaded_file(uploaded_file):
             return False
 
         # ====================================================
-        # CREATE CLEAN DATAFRAME
+        # CREATE CLEAN DATA
         # ====================================================
 
         clean_data = pd.DataFrame()
@@ -419,8 +419,11 @@ def load_uploaded_file(uploaded_file):
             .apply(normalize_serial)
         )
 
-        # Blank status before first check.
-        clean_data["Status"] = ""
+        # IMPORTANT:
+        # Only Online / Offline are used.
+        # Before checking, use Offline as default.
+
+        clean_data["Status"] = "Offline"
 
         clean_data = clean_data[
             clean_data["DVR Number"]
@@ -452,15 +455,21 @@ def load_uploaded_file(uploaded_file):
         st.session_state.last_scan_time = None
 
         st.session_state.scan_completed = 0
+
         st.session_state.scan_total = 0
 
         st.session_state.uploaded_file_name = uploaded_file.name
 
-        st.session_state.file_updated = False
-        st.session_state.updated_changes = []
-        st.session_state.updated_file_name = ""
+        st.session_state.uploaded_signature = (
+            uploaded_file.name,
+            uploaded_file.size
+        )
 
-        st.session_state.show_log = False
+        st.session_state.file_updated = False
+
+        st.session_state.updated_changes = []
+
+        st.session_state.updated_file_name = ""
 
         st.session_state.monitor_log = pd.DataFrame(
             columns=[
@@ -472,6 +481,8 @@ def load_uploaded_file(uploaded_file):
                 "Status"
             ]
         )
+
+        st.session_state.show_log = False
 
         reset_edit_state()
 
@@ -1062,15 +1073,26 @@ def add_monitor_log(index, status):
             }]
         )
 
-        st.session_state.monitor_log = (
-            pd.concat(
-                [
-                    st.session_state.monitor_log,
-                    new_log
-                ],
-                ignore_index=True
+        if (
+            "monitor_log"
+            not in st.session_state
+        ):
+
+            st.session_state.monitor_log = (
+                new_log
             )
-        )
+
+        else:
+
+            st.session_state.monitor_log = (
+                pd.concat(
+                    [
+                        st.session_state.monitor_log,
+                        new_log
+                    ],
+                    ignore_index=True
+                )
+            )
 
     except Exception as e:
 
@@ -1163,6 +1185,12 @@ def run_check_all():
 
                 status = "Offline"
 
+            if status not in (
+                "Online",
+                "Offline"
+            ):
+                status = "Offline"
+
             st.session_state.dvr_data.loc[
                 index,
                 "Status"
@@ -1231,9 +1259,6 @@ def get_counts():
             "offline": 0
         }
 
-    if "Status" not in data.columns:
-        data["Status"] = ""
-
     return {
 
         "total": len(data),
@@ -1255,252 +1280,296 @@ def get_counts():
 
 
 # ============================================================
-# DARK MODE CSS
+# THEME CSS
 # ============================================================
 
 def apply_css():
 
+    dark = (
+        st.session_state.theme_mode
+        == "Dark"
+    )
+
+    if dark:
+
+        bg = "#0f1415"
+        text = "#f1f5f5"
+        box = "#171e20"
+        border = "#303a3c"
+        input_bg = "#263235"
+        input_border = "#46575a"
+        disabled_bg = "#20292b"
+        muted = "#9ba7aa"
+        label = "#d9e1e2"
+
+    else:
+
+        bg = "#f4f7f8"
+        text = "#172124"
+        box = "#ffffff"
+        border = "#d5dddf"
+        input_bg = "#ffffff"
+        input_border = "#b9c5c8"
+        disabled_bg = "#edf1f2"
+        muted = "#607174"
+        label = "#334346"
+
     st.markdown(
-        """
+        f"""
         <style>
 
-        .stApp {
-            background:#0f1415 !important;
-            color:#f1f5f5 !important;
-        }
+        .stApp {{
+            background:{bg} !important;
+            color:{text} !important;
+        }}
 
-        .main-header {
+        .main-header {{
             background:#007e82;
             color:white;
             padding:22px 30px;
             border-radius:10px;
             margin-bottom:18px;
-        }
+        }}
 
-        .main-title-text {
+        .main-title-text {{
             font-size:28px;
             font-weight:700;
-        }
+        }}
 
-        .main-subtitle {
+        .main-subtitle {{
             font-size:13px;
             color:#b8eeee;
             margin-top:4px;
-        }
+        }}
 
-        .metric-card {
+        .metric-card {{
             border-radius:10px;
             padding:18px;
             min-height:110px;
             color:white;
             box-shadow:0 3px 8px rgba(0,0,0,.35);
-        }
+        }}
 
-        .metric-title {
+        .metric-title {{
             font-size:13px;
             font-weight:700;
-        }
+        }}
 
-        .metric-value {
+        .metric-value {{
             font-size:34px;
             font-weight:700;
             margin-top:10px;
-        }
+        }}
 
-        .metric-total {
+        .metric-total {{
             background:#00a7a5;
-        }
+        }}
 
-        .metric-online {
+        .metric-online {{
             background:#159447;
-        }
+        }}
 
-        .metric-offline {
+        .metric-offline {{
             background:#d9363e;
-        }
+        }}
 
-        .section-box {
-            background:#171e20 !important;
-            border:1px solid #303a3c !important;
+        .section-box {{
+            background:{box} !important;
+            border:1px solid {border} !important;
             border-radius:10px;
             padding:14px;
             margin-bottom:14px;
-        }
+        }}
 
-        .section-title {
+        .section-title {{
             color:#35d0d0 !important;
             font-size:16px;
             font-weight:700;
             margin-bottom:8px;
-        }
+        }}
 
-        button {
+        button {{
             border-radius:7px !important;
             font-weight:700 !important;
-        }
+            min-height:40px !important;
+        }}
 
-        .load-button button {
+        .load-button button {{
             background:#1769aa !important;
             color:#ffffff !important;
             border:1px solid #1769aa !important;
-        }
+        }}
 
-        .load-button button:hover {
+        .load-button button:hover {{
             background:#0d568e !important;
-        }
+        }}
 
-        .check-button button {
+        .check-button button {{
             background:#159447 !important;
             color:#ffffff !important;
             border:1px solid #159447 !important;
-        }
+        }}
 
-        .check-button button:hover {
+        .check-button button:hover {{
             background:#107638 !important;
-        }
+        }}
 
-        .log-button button {
+        .log-button button {{
             background:#007e82 !important;
             color:#ffffff !important;
             border:1px solid #007e82 !important;
-        }
+        }}
 
-        .log-button button:hover {
-            background:#00696c !important;
-        }
+        .log-button button:hover {{
+            background:#00676a !important;
+        }}
 
-        .edit-button button {
+        .edit-button button {{
             background:#f39c12 !important;
             color:#ffffff !important;
             border:1px solid #f39c12 !important;
-        }
+        }}
 
-        .edit-button button:hover {
+        .edit-button button:hover {{
             background:#d98200 !important;
-        }
+        }}
 
-        .refresh-button button {
+        .refresh-button button {{
             background:#d9363e !important;
             color:#ffffff !important;
             border:1px solid #d9363e !important;
-        }
+        }}
 
-        .refresh-button button:hover {
+        .refresh-button button:hover {{
             background:#b52b33 !important;
-        }
+        }}
 
-        .save-button button {
+        .save-button button {{
             background:#159447 !important;
             color:#ffffff !important;
             border:1px solid #159447 !important;
-        }
+        }}
 
-        .save-button button:hover {
+        .save-button button:hover {{
             background:#107638 !important;
-        }
+        }}
 
-        .cancel-button button {
+        .cancel-button button {{
             background:#607d8b !important;
             color:#ffffff !important;
             border:1px solid #607d8b !important;
-        }
+        }}
 
-        .cancel-button button:hover {
+        .cancel-button button:hover {{
             background:#455a64 !important;
-        }
+        }}
 
-        .close-button button {
+        .close-button button {{
             background:#d9363e !important;
             color:#ffffff !important;
             border:1px solid #d9363e !important;
-        }
+        }}
 
-        .close-button button:hover {
+        .close-button button:hover {{
             background:#b52b33 !important;
-        }
+        }}
 
-        .select-button button {
+        .select-button button {{
             background:#1769aa !important;
             color:#ffffff !important;
             border:1px solid #1769aa !important;
-        }
+        }}
 
-        .pencil-button button {
+        .pencil-button button {{
             background:#f39c12 !important;
             color:#ffffff !important;
             border:1px solid #f39c12 !important;
             min-height:38px !important;
             font-size:16px !important;
-        }
+        }}
 
-        .pencil-button button:hover {
+        .pencil-button button:hover {{
             background:#d98200 !important;
-        }
+        }}
 
-        .download-button button {
+        .download-button button {{
             background:#007e82 !important;
             color:#ffffff !important;
             border:1px solid #007e82 !important;
-        }
+        }}
 
-        .download-button button:hover {
-            background:#00696c !important;
-        }
+        .theme-button button {{
+            background:#5e35b1 !important;
+            color:#ffffff !important;
+            border:1px solid #5e35b1 !important;
+        }}
 
-        div[data-baseweb="input"] {
-            background:#263235 !important;
-            border:1px solid #46575a !important;
+        .theme-button button:hover {{
+            background:#45278c !important;
+        }}
+
+        div[data-baseweb="input"] {{
+            background:{input_bg} !important;
+            border:1px solid {input_border} !important;
             border-radius:7px !important;
-        }
+        }}
 
-        div[data-baseweb="input"]:focus-within {
+        div[data-baseweb="input"]:focus-within {{
             border:1px solid #00a7a5 !important;
             box-shadow:0 0 0 1px #00a7a5 !important;
-        }
+        }}
 
-        div[data-baseweb="input"] input {
-            color:#ffffff !important;
-            background:#263235 !important;
-        }
+        div[data-baseweb="input"] input {{
+            color:{text} !important;
+            background:{input_bg} !important;
+        }}
 
-        div[data-baseweb="input"] input::placeholder {
-            color:#9aa7aa !important;
-        }
+        div[data-baseweb="input"] input::placeholder {{
+            color:{muted} !important;
+        }}
 
-        div[data-baseweb="input"]:has(input:disabled) {
-            background:#20292b !important;
-            border:1px solid #384548 !important;
-        }
+        div[data-baseweb="input"]:has(input:disabled) {{
+            background:{disabled_bg} !important;
+            border:1px solid {border} !important;
+        }}
 
-        div[data-baseweb="input"] input:disabled {
-            color:#9ba7aa !important;
-            -webkit-text-fill-color:#9ba7aa !important;
+        div[data-baseweb="input"] input:disabled {{
+            color:{muted} !important;
+            -webkit-text-fill-color:{muted} !important;
             opacity:1 !important;
             cursor:not-allowed !important;
-        }
+        }}
 
-        div[data-baseweb="select"] > div {
-            background:#263235 !important;
-            border-color:#46575a !important;
-            color:#ffffff !important;
-        }
+        div[data-baseweb="select"] > div {{
+            background:{input_bg} !important;
+            border-color:{input_border} !important;
+            color:{text} !important;
+        }}
 
-        label {
-            color:#d9e1e2 !important;
-        }
+        label {{
+            color:{label} !important;
+        }}
 
-        .stCaption {
-            color:#9ba7aa !important;
-        }
+        .stCaption {{
+            color:{muted} !important;
+        }}
 
-        div[data-testid="stAlert"] {
+        div[data-testid="stAlert"] {{
             border-radius:9px !important;
-        }
+        }}
 
-        div[data-testid="stDataFrame"] {
+        div[data-testid="stDataFrame"] {{
             border-radius:8px !important;
             overflow:hidden !important;
-        }
+        }}
+
+        .theme-label {{
+            font-size:13px;
+            font-weight:700;
+            color:{label};
+            text-align:center;
+            margin-bottom:3px;
+        }}
 
         </style>
         """,
@@ -1592,13 +1661,14 @@ def render_metrics():
 
 # ============================================================
 # UPDATED EXCEL
-# ONLY STORE ID / SITE NAME / DVR NUMBER
 # ============================================================
 
 def create_updated_excel():
 
     output = io.BytesIO()
 
+    # IMPORTANT:
+    # Updated file contains ONLY these 3 columns.
     data = st.session_state.dvr_data[
         [
             "Store ID",
@@ -1625,7 +1695,6 @@ def create_updated_excel():
 
 # ============================================================
 # UPDATED CSV
-# ONLY STORE ID / SITE NAME / DVR NUMBER
 # ============================================================
 
 def create_updated_csv():
@@ -1644,9 +1713,24 @@ def create_updated_csv():
 
 
 # ============================================================
-# CURRENT TABLE EXCEL
-# INCLUDES STATUS
+# CURRENT TABLE DOWNLOAD
 # ============================================================
+
+def create_current_table_csv():
+
+    data = st.session_state.dvr_data[
+        [
+            "Store ID",
+            "Site Name",
+            "DVR Number",
+            "Status"
+        ]
+    ].copy()
+
+    return data.to_csv(
+        index=False
+    ).encode("utf-8")
+
 
 def create_current_table_excel():
 
@@ -1660,15 +1744,6 @@ def create_current_table_excel():
             "Status"
         ]
     ].copy()
-
-    data["Status"] = (
-        data["Status"]
-        .replace(
-            {
-                "": "-"
-            }
-        )
-    )
 
     with pd.ExcelWriter(
         output,
@@ -1684,36 +1759,6 @@ def create_current_table_excel():
     output.seek(0)
 
     return output.getvalue()
-
-
-# ============================================================
-# CURRENT TABLE CSV
-# INCLUDES STATUS
-# ============================================================
-
-def create_current_table_csv():
-
-    data = st.session_state.dvr_data[
-        [
-            "Store ID",
-            "Site Name",
-            "DVR Number",
-            "Status"
-        ]
-    ].copy()
-
-    data["Status"] = (
-        data["Status"]
-        .replace(
-            {
-                "": "-"
-            }
-        )
-    )
-
-    return data.to_csv(
-        index=False
-    ).encode("utf-8")
 
 
 # ============================================================
@@ -1762,14 +1807,20 @@ def render_updated_file():
     if close_clicked:
 
         st.session_state.file_updated = False
+
         st.session_state.updated_changes = []
-        st.session_state.updated_file_name = ""
 
         st.rerun()
 
     changes = st.session_state.updated_changes
 
-    if changes:
+    if not changes:
+
+        st.info(
+            "No changes made."
+        )
+
+    else:
 
         st.success(
             "Changes saved successfully."
@@ -1850,8 +1901,9 @@ def render_toolbar():
             1.05,
             1.35,
             1.15,
-            3.25,
-            1.25
+            1.15,
+            1.15,
+            1.15
         ]
     )
 
@@ -1911,7 +1963,7 @@ def render_toolbar():
         )
 
     # ========================================================
-    # LOG BUTTON
+    # LOG
     # ========================================================
 
     with columns[2]:
@@ -1933,10 +1985,36 @@ def render_toolbar():
         )
 
     # ========================================================
-    # SPACER
+    # THEME
     # ========================================================
 
     with columns[3]:
+
+        st.markdown(
+            '<div class="theme-button">',
+            unsafe_allow_html=True
+        )
+
+        theme_clicked = st.button(
+            (
+                "☀️ Light"
+                if st.session_state.theme_mode == "Dark"
+                else "🌙 Dark"
+            ),
+            use_container_width=True,
+            key="theme_toggle"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    # ========================================================
+    # SPACER
+    # ========================================================
+
+    with columns[4]:
 
         st.write("")
 
@@ -1944,7 +2022,7 @@ def render_toolbar():
     # REFRESH
     # ========================================================
 
-    with columns[4]:
+    with columns[5]:
 
         st.markdown(
             '<div class="refresh-button">',
@@ -1968,17 +2046,32 @@ def render_toolbar():
         )
 
     # ========================================================
-    # LOG CLICK
+    # THEME ACTION
     # ========================================================
 
-    if log_clicked:
+    if theme_clicked:
 
-        st.session_state.show_log = True
+        if st.session_state.theme_mode == "Dark":
+            st.session_state.theme_mode = "Light"
+        else:
+            st.session_state.theme_mode = "Dark"
 
         st.rerun()
 
     # ========================================================
-    # CHECK CLICK
+    # LOG ACTION
+    # ========================================================
+
+    if log_clicked:
+
+        st.session_state.show_log = (
+            not st.session_state.show_log
+        )
+
+        st.rerun()
+
+    # ========================================================
+    # CHECK ACTION
     # ========================================================
 
     if check_clicked:
@@ -1988,7 +2081,7 @@ def render_toolbar():
         st.rerun()
 
     # ========================================================
-    # REFRESH CLICK
+    # REFRESH ACTION
     # ========================================================
 
     if refresh_clicked:
@@ -2045,7 +2138,6 @@ def render_search():
 
     # ========================================================
     # STATUS
-    # ONLY ALL / ONLINE / OFFLINE
     # ========================================================
 
     with columns[1]:
@@ -2303,7 +2395,6 @@ def style_status(value):
         )
 
     return (
-        "color:#9ba7aa;"
         "font-weight:bold;"
     )
 
@@ -2340,7 +2431,7 @@ def render_edit():
             unsafe_allow_html=True
         )
 
-        close_edit_clicked = st.button(
+        close_clicked = st.button(
             "✖ Close",
             use_container_width=True,
             key="close_edit_panel"
@@ -2351,7 +2442,7 @@ def render_edit():
             unsafe_allow_html=True
         )
 
-    if close_edit_clicked:
+    if close_clicked:
 
         reset_edit_state()
 
@@ -2819,13 +2910,13 @@ def render_edit():
             "DVR Number"
         ] = new_dvr_number
 
-        # New DVR details need checking again.
-        # Blank is used instead of showing "Not Checked".
+        # After changing DVR details, status becomes Offline
+        # until next Check All / Refresh.
 
         st.session_state.dvr_data.loc[
             selected_index,
             "Status"
-        ] = ""
+        ] = "Offline"
 
         # ====================================================
         # UPDATED FILE
@@ -2857,10 +2948,6 @@ def render_edit():
             f"{base_name}_UPDATED.xlsx"
         )
 
-        # ====================================================
-        # CLOSE EDIT AUTOMATICALLY
-        # ====================================================
-
         reset_edit_state()
 
         st.rerun()
@@ -2882,7 +2969,7 @@ def render_edit():
 
 
 # ============================================================
-# MONITORING LOG PANEL
+# MONITORING LOG
 # ============================================================
 
 def render_monitor_log():
@@ -2916,7 +3003,7 @@ def render_monitor_log():
         close_log_clicked = st.button(
             "✖ Close",
             use_container_width=True,
-            key="close_log"
+            key="close_monitor_log"
         )
 
         st.markdown(
@@ -2945,8 +3032,10 @@ def render_monitor_log():
             f"Total log entries: {len(log_data)}"
         )
 
+        display_log = log_data.iloc[::-1].copy()
+
         st.dataframe(
-            log_data.iloc[::-1],
+            display_log,
             width="stretch",
             height=350,
             hide_index=True
@@ -2974,7 +3063,7 @@ def render_monitor_log():
 
 
 # ============================================================
-# TABLE
+# DVR TABLE
 # ============================================================
 
 def render_table(filtered_data):
@@ -2985,11 +3074,11 @@ def render_table(filtered_data):
     )
 
     # ========================================================
-    # TABLE HEADER + DOWNLOAD
+    # TABLE HEADER + DOWNLOAD BUTTON
     # ========================================================
 
     title_col, download_col = st.columns(
-        [7, 2]
+        [7, 3]
     )
 
     with title_col:
@@ -3001,19 +3090,38 @@ def render_table(filtered_data):
 
     with download_col:
 
-        current_excel = create_current_table_excel()
-
-        st.download_button(
-            "📥 Download Current Table",
-            data=current_excel,
-            file_name="Current_DVR_Table.xlsx",
-            mime=(
-                "application/vnd.openxmlformats-officedocument."
-                "spreadsheetml.sheet"
-            ),
-            use_container_width=True,
-            key="download_current_table_excel"
+        download_excel, download_csv = st.columns(
+            2
         )
+
+        with download_excel:
+
+            excel_bytes = create_current_table_excel()
+
+            st.download_button(
+                "📥 Excel",
+                data=excel_bytes,
+                file_name="Current_DVR_Table.xlsx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                use_container_width=True,
+                key="download_current_dvr_excel"
+            )
+
+        with download_csv:
+
+            csv_bytes = create_current_table_csv()
+
+            st.download_button(
+                "📥 CSV",
+                data=csv_bytes,
+                file_name="Current_DVR_Table.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_current_dvr_csv"
+            )
 
     if filtered_data.empty:
 
@@ -3045,19 +3153,6 @@ def render_table(filtered_data):
         ]
     ].copy()
 
-    # ========================================================
-    # REMOVE INTERNAL BLANK STATUS
-    # ========================================================
-
-    display_data["Status"] = (
-        display_data["Status"]
-        .replace(
-            {
-                "": "-"
-            }
-        )
-    )
-
     styled = (
         display_data
         .style
@@ -3072,21 +3167,6 @@ def render_table(filtered_data):
         width="stretch",
         height=500,
         hide_index=True
-    )
-
-    # ========================================================
-    # CSV DOWNLOAD ALSO
-    # ========================================================
-
-    current_csv = create_current_table_csv()
-
-    st.download_button(
-        "📄 Download Current Table CSV",
-        data=current_csv,
-        file_name="Current_DVR_Table.csv",
-        mime="text/csv",
-        use_container_width=True,
-        key="download_current_table_csv"
     )
 
     st.markdown(
@@ -3163,7 +3243,10 @@ def main():
     # LOAD ERROR
     # ========================================================
 
-    if st.session_state.load_error:
+    if st.session_state.get(
+        "load_error",
+        ""
+    ):
 
         st.error(
             st.session_state.load_error
@@ -3276,13 +3359,7 @@ def main():
     render_updated_file()
 
     # ========================================================
-    # LOG
-    # ========================================================
-
-    render_monitor_log()
-
-    # ========================================================
-    # TABLE
+    # CURRENT TABLE
     # ========================================================
 
     filtered_data = filter_data(
@@ -3293,6 +3370,12 @@ def main():
     render_table(
         filtered_data
     )
+
+    # ========================================================
+    # LOG
+    # ========================================================
+
+    render_monitor_log()
 
 
 # ============================================================
