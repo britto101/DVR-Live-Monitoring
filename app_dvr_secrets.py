@@ -2,10 +2,8 @@ import base64
 import datetime
 import hashlib
 import io
-import os
 import random
 import socket
-import threading
 import time
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -27,37 +25,18 @@ MAX_WORKERS = 10
 
 AUTO_REFRESH_SECONDS = 60
 
-# ============================================================
-# EXCEL FILE
-# ============================================================
-
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
-
-EXCEL_FILE = os.path.join(
-    BASE_DIR,
-    "DVRlist (1).xlsx"
-)
+FILE_TYPES = ["xlsx", "xls", "csv"]
 
 
 # ============================================================
 # EASY4IP CREDENTIALS
 # ============================================================
-# Read securely from Streamlit Secrets.
-#
-# Local:
-#   .streamlit/secrets.toml
-#
-# Streamlit Cloud:
-#   App -> Settings -> Secrets
-#
-# Never commit secrets.toml to GitHub.
 
 try:
     USERNAME = st.secrets["EASY4IP_USERNAME"]
     USERKEY = st.secrets["EASY4IP_USERKEY"]
     RANDSALT = st.secrets["EASY4IP_RANDSALT"]
+
 except Exception as e:
     raise RuntimeError(
         "Missing Easy4IP secrets. Add EASY4IP_USERNAME, "
@@ -122,17 +101,75 @@ def initialize_state():
     if "last_auto_refresh_count" not in st.session_state:
         st.session_state.last_auto_refresh_count = 0
 
-    if "dark_mode" not in st.session_state:
-        st.session_state.dark_mode = False
-
     if "loaded" not in st.session_state:
         st.session_state.loaded = False
+
+    if "uploaded_signature" not in st.session_state:
+        st.session_state.uploaded_signature = None
+
+    if "uploaded_file_name" not in st.session_state:
+        st.session_state.uploaded_file_name = ""
+
+    # ========================================================
+    # EDIT STATE
+    # ========================================================
+
+    if "edit_mode" not in st.session_state:
+        st.session_state.edit_mode = False
+
+    if "edit_index" not in st.session_state:
+        st.session_state.edit_index = None
+
+    if "edit_candidates" not in st.session_state:
+        st.session_state.edit_candidates = []
 
     if "load_error" not in st.session_state:
         st.session_state.load_error = ""
 
-    if "last_message" not in st.session_state:
-        st.session_state.last_message = ""
+    # ========================================================
+    # INDIVIDUAL EDIT ENABLE STATES
+    # ========================================================
+
+    if "edit_store_enabled" not in st.session_state:
+        st.session_state.edit_store_enabled = False
+
+    if "edit_site_enabled" not in st.session_state:
+        st.session_state.edit_site_enabled = False
+
+    if "edit_dvr_enabled" not in st.session_state:
+        st.session_state.edit_dvr_enabled = False
+
+    # ========================================================
+    # UPDATED FILE STATE
+    # ========================================================
+
+    if "file_updated" not in st.session_state:
+        st.session_state.file_updated = False
+
+    if "updated_changes" not in st.session_state:
+        st.session_state.updated_changes = []
+
+    if "updated_file_name" not in st.session_state:
+        st.session_state.updated_file_name = ""
+
+    # ========================================================
+    # LOG STATE
+    # ========================================================
+
+    if "show_log" not in st.session_state:
+        st.session_state.show_log = False
+
+    if "monitor_log" not in st.session_state:
+        st.session_state.monitor_log = pd.DataFrame(
+            columns=[
+                "Date",
+                "Time",
+                "Store ID",
+                "Site Name",
+                "DVR Number",
+                "Status"
+            ]
+        )
 
 
 initialize_state()
@@ -148,10 +185,8 @@ def normalize_serial(value):
         return ""
 
     try:
-
         if pd.isna(value):
             return ""
-
     except Exception:
         pass
 
@@ -190,71 +225,67 @@ def clean_column_name(name):
     )
 
 
-def find_column(
-    columns_list,
-    possible_names
-):
+def find_column(columns_list, possible_names):
 
     normalized = {}
 
     for col in columns_list:
 
-        clean = clean_column_name(
-            col
-        )
+        clean = clean_column_name(col)
 
         normalized[clean] = col
 
     for name in possible_names:
 
-        clean_name = clean_column_name(
-            name
-        )
+        clean_name = clean_column_name(name)
 
         if clean_name in normalized:
-
-            return normalized[
-                clean_name
-            ]
+            return normalized[clean_name]
 
     return None
 
 
 # ============================================================
-# LOAD EXCEL
+# RESET EDIT STATE
 # ============================================================
 
-def load_excel():
+def reset_edit_state():
 
-    if not os.path.isfile(EXCEL_FILE):
+    st.session_state.edit_mode = False
+    st.session_state.edit_index = None
+    st.session_state.edit_candidates = []
 
-        st.session_state.load_error = (
-            "Excel file not found:\n\n"
-            + EXCEL_FILE
-        )
+    st.session_state.edit_store_enabled = False
+    st.session_state.edit_site_enabled = False
+    st.session_state.edit_dvr_enabled = False
 
-        st.session_state.dvr_data = pd.DataFrame(
-            columns=[
-                "Store ID",
-                "Site Name",
-                "DVR Number",
-                "Status"
-            ]
-        )
 
+# ============================================================
+# LOAD EXCEL / CSV
+# ============================================================
+
+def load_uploaded_file(uploaded_file):
+
+    if uploaded_file is None:
         return False
 
     try:
 
-        data = pd.read_excel(
-            EXCEL_FILE,
-            dtype=str,
-            engine="openpyxl"
-        )
+        file_name = uploaded_file.name.lower()
 
-        # ----------------------------------------------------
-        # Remove completely empty rows/columns
-        # ----------------------------------------------------
+        if file_name.endswith(".csv"):
+
+            data = pd.read_csv(
+                uploaded_file,
+                dtype=str
+            )
+
+        else:
+
+            data = pd.read_excel(
+                uploaded_file,
+                dtype=str
+            )
 
         data = data.dropna(
             axis=1,
@@ -266,23 +297,14 @@ def load_excel():
             how="all"
         )
 
-        # ----------------------------------------------------
-        # Clean column names
-        # ----------------------------------------------------
-
         data.columns = [
             str(col).strip()
             for col in data.columns
         ]
 
-        print(
-            "Excel columns:",
-            list(data.columns)
-        )
-
-        # ----------------------------------------------------
-        # Find Store ID
-        # ----------------------------------------------------
+        # ====================================================
+        # STORE ID
+        # ====================================================
 
         store_column = find_column(
             data.columns,
@@ -298,9 +320,9 @@ def load_excel():
             ]
         )
 
-        # ----------------------------------------------------
-        # Find Site Name
-        # ----------------------------------------------------
+        # ====================================================
+        # SITE NAME
+        # ====================================================
 
         site_column = find_column(
             data.columns,
@@ -314,9 +336,9 @@ def load_excel():
             ]
         )
 
-        # ----------------------------------------------------
-        # Find DVR Number
-        # ----------------------------------------------------
+        # ====================================================
+        # DVR NUMBER
+        # ====================================================
 
         dvr_column = find_column(
             data.columns,
@@ -337,14 +359,10 @@ def load_excel():
             ]
         )
 
-        # ----------------------------------------------------
-        # DVR column is mandatory
-        # ----------------------------------------------------
-
         if dvr_column is None:
 
             st.session_state.load_error = (
-                "DVR/P2P column was not found in the Excel file.\n\n"
+                "DVR/P2P column was not found in the uploaded file.\n\n"
                 "Columns found:\n"
                 + ", ".join(
                     str(x)
@@ -361,24 +379,22 @@ def load_excel():
                 ]
             )
 
+            st.session_state.loaded = False
+
             return False
 
-        # ----------------------------------------------------
-        # Create clean dataframe
-        # ----------------------------------------------------
+        # ====================================================
+        # CREATE CLEAN DATAFRAME
+        # ====================================================
 
         clean_data = pd.DataFrame()
 
         if store_column is not None:
 
             clean_data["Store ID"] = (
-                data[
-                    store_column
-                ]
+                data[store_column]
                 .fillna("")
-                .apply(
-                    normalize_serial
-                )
+                .apply(normalize_serial)
             )
 
         else:
@@ -388,13 +404,9 @@ def load_excel():
         if site_column is not None:
 
             clean_data["Site Name"] = (
-                data[
-                    site_column
-                ]
+                data[site_column]
                 .fillna("")
-                .apply(
-                    normalize_serial
-                )
+                .apply(normalize_serial)
             )
 
         else:
@@ -402,29 +414,16 @@ def load_excel():
             clean_data["Site Name"] = ""
 
         clean_data["DVR Number"] = (
-            data[
-                dvr_column
-            ]
+            data[dvr_column]
             .fillna("")
-            .apply(
-                normalize_serial
-            )
+            .apply(normalize_serial)
         )
 
-        # ----------------------------------------------------
-        # Status ONLY exists in memory
-        # ----------------------------------------------------
-
-        clean_data["Status"] = "Not Checked"
-
-        # ----------------------------------------------------
-        # Remove rows without DVR number
-        # ----------------------------------------------------
+        # Blank status before first check.
+        clean_data["Status"] = ""
 
         clean_data = clean_data[
-            clean_data[
-                "DVR Number"
-            ]
+            clean_data["DVR Number"]
             .astype(str)
             .str.strip()
             != ""
@@ -435,10 +434,6 @@ def load_excel():
             inplace=True
         )
 
-        # ----------------------------------------------------
-        # Guarantee exact columns
-        # ----------------------------------------------------
-
         clean_data = clean_data[
             [
                 "Store ID",
@@ -448,19 +443,44 @@ def load_excel():
             ]
         ]
 
-        st.session_state.dvr_data = (
-            clean_data
-        )
+        st.session_state.dvr_data = clean_data
 
         st.session_state.loaded = True
+
         st.session_state.load_error = ""
+
+        st.session_state.last_scan_time = None
+
+        st.session_state.scan_completed = 0
+        st.session_state.scan_total = 0
+
+        st.session_state.uploaded_file_name = uploaded_file.name
+
+        st.session_state.file_updated = False
+        st.session_state.updated_changes = []
+        st.session_state.updated_file_name = ""
+
+        st.session_state.show_log = False
+
+        st.session_state.monitor_log = pd.DataFrame(
+            columns=[
+                "Date",
+                "Time",
+                "Store ID",
+                "Site Name",
+                "DVR Number",
+                "Status"
+            ]
+        )
+
+        reset_edit_state()
 
         return True
 
     except Exception as e:
 
         st.session_state.load_error = (
-            "Excel loading error:\n\n"
+            "File loading error:\n\n"
             + str(e)
         )
 
@@ -473,99 +493,9 @@ def load_excel():
             ]
         )
 
+        st.session_state.loaded = False
+
         return False
-
-
-# ============================================================
-# SAVE EXCEL
-# ============================================================
-
-def save_excel_file():
-
-    try:
-
-        data = st.session_state.dvr_data
-
-        # ----------------------------------------------------
-        # Safety check
-        # ----------------------------------------------------
-
-        if data is None:
-
-            return False, "No DVR data."
-
-        if data.empty:
-
-            return False, "No DVR data to save."
-
-        # ----------------------------------------------------
-        # Guarantee columns exist
-        # ----------------------------------------------------
-
-        for column in [
-            "Store ID",
-            "Site Name",
-            "DVR Number"
-        ]:
-
-            if column not in data.columns:
-
-                data[column] = ""
-
-        # ----------------------------------------------------
-        # Save ONLY permanent columns
-        # ----------------------------------------------------
-
-        excel_data = pd.DataFrame({
-
-            "Store ID": [
-                normalize_serial(x)
-                for x in data[
-                    "Store ID"
-                ]
-            ],
-
-            "Site Name": [
-                normalize_serial(x)
-                for x in data[
-                    "Site Name"
-                ]
-            ],
-
-            "DVR Number": [
-                normalize_serial(x)
-                for x in data[
-                    "DVR Number"
-                ]
-            ]
-
-        })
-
-        excel_data.to_excel(
-            EXCEL_FILE,
-            index=False,
-            engine="openpyxl"
-        )
-
-        return (
-            True,
-            "Excel file saved successfully."
-        )
-
-    except PermissionError:
-
-        return (
-            False,
-            "Permission denied. "
-            "Please close the Excel file before saving."
-        )
-
-    except Exception as e:
-
-        return (
-            False,
-            f"Excel save error: {e}"
-        )
 
 
 # ============================================================
@@ -589,9 +519,7 @@ class UDPClient:
             socket.SOCK_DGRAM
         )
 
-        self.sock.settimeout(
-            timeout
-        )
+        self.sock.settimeout(timeout)
 
     def close(self):
 
@@ -609,9 +537,7 @@ class UDPClient:
 
         last_error = None
 
-        for attempt in range(
-            retries
-        ):
+        for attempt in range(retries):
 
             try:
 
@@ -694,7 +620,6 @@ class UDPClient:
                     time.sleep(0.2)
 
         if last_error:
-
             raise last_error
 
         raise RuntimeError(
@@ -724,7 +649,6 @@ def parse_response(data):
         headers_part = parts[0]
 
         if len(parts) > 1:
-
             result["body"] = parts[1]
 
         lines = headers_part.split(
@@ -732,7 +656,6 @@ def parse_response(data):
         )
 
         if not lines:
-
             return result
 
         first = lines[0].split(
@@ -760,9 +683,7 @@ def parse_response(data):
                     1
                 )
 
-                result[
-                    "headers"
-                ][
+                result["headers"][
                     key.strip().lower()
                 ] = value.strip()
 
@@ -814,7 +735,6 @@ def parse_endpoint(value):
         return None
 
     if port < 1 or port > 65535:
-
         return None
 
     return host, port
@@ -826,10 +746,6 @@ def extract_p2p_endpoint(body):
         return None
 
     text = body.strip()
-
-    # --------------------------------------------------------
-    # Normal <US>...</US>
-    # --------------------------------------------------------
 
     start = text.find(
         "<US>"
@@ -851,12 +767,7 @@ def extract_p2p_endpoint(body):
             )
 
             if endpoint:
-
                 return endpoint
-
-    # --------------------------------------------------------
-    # Case insensitive
-    # --------------------------------------------------------
 
     upper = text.upper()
 
@@ -880,23 +791,12 @@ def extract_p2p_endpoint(body):
             )
 
             if endpoint:
-
                 return endpoint
-
-    # --------------------------------------------------------
-    # Search individual tokens
-    # --------------------------------------------------------
 
     for token in (
         text
-        .replace(
-            "\r",
-            " "
-        )
-        .replace(
-            "\n",
-            " "
-        )
+        .replace("\r", " ")
+        .replace("\n", " ")
         .split()
     ):
 
@@ -920,7 +820,6 @@ def extract_p2p_endpoint(body):
         )
 
         if endpoint:
-
             return endpoint
 
     return None
@@ -937,7 +836,6 @@ def resolve_p2psrv(serial):
     )
 
     if not serial:
-
         return None
 
     for server, port in MAIN_SERVERS:
@@ -974,7 +872,6 @@ def resolve_p2psrv(serial):
             )
 
             if code >= 400:
-
                 continue
 
             endpoint = extract_p2p_endpoint(
@@ -1001,7 +898,6 @@ def resolve_p2psrv(serial):
         finally:
 
             if client:
-
                 client.close()
 
     return None
@@ -1011,16 +907,13 @@ def resolve_p2psrv(serial):
 # CHECK DVR
 # ============================================================
 
-def check_dvr_status(
-    dvr_number
-):
+def check_dvr_status(dvr_number):
 
     serial = normalize_serial(
         dvr_number
     )
 
     if not serial:
-
         return "Offline"
 
     endpoint = resolve_p2psrv(
@@ -1049,10 +942,6 @@ def check_dvr_status(
             SOCKET_TIMEOUT
         )
 
-        # ----------------------------------------------------
-        # PROBE
-        # ----------------------------------------------------
-
         probe = client.request(
             f"/probe/device/{serial}",
             retries=REQUEST_RETRIES
@@ -1078,10 +967,6 @@ def check_dvr_status(
 
             return "Online"
 
-        # ----------------------------------------------------
-        # INFO FALLBACK
-        # ----------------------------------------------------
-
         info = client.request(
             f"/info/device/{serial}",
             retries=REQUEST_RETRIES
@@ -1095,6 +980,7 @@ def check_dvr_status(
         print(
             f"[INFO] "
             f"{serial} -> "
+            f"{host}:{port} "
             f"HTTP {info_code}"
         )
 
@@ -1135,8 +1021,62 @@ def check_dvr_status(
     finally:
 
         if client:
-
             client.close()
+
+
+# ============================================================
+# ADD MONITORING LOG
+# ============================================================
+
+def add_monitor_log(index, status):
+
+    try:
+
+        data = st.session_state.dvr_data
+
+        if index not in data.index:
+            return
+
+        row = data.loc[index]
+
+        now = datetime.datetime.now()
+
+        new_log = pd.DataFrame(
+            [{
+                "Date": now.strftime(
+                    "%Y-%m-%d"
+                ),
+                "Time": now.strftime(
+                    "%H:%M:%S"
+                ),
+                "Store ID": normalize_serial(
+                    row["Store ID"]
+                ),
+                "Site Name": normalize_serial(
+                    row["Site Name"]
+                ),
+                "DVR Number": normalize_serial(
+                    row["DVR Number"]
+                ),
+                "Status": status
+            }]
+        )
+
+        st.session_state.monitor_log = (
+            pd.concat(
+                [
+                    st.session_state.monitor_log,
+                    new_log
+                ],
+                ignore_index=True
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            f"[LOG ERROR] {e}"
+        )
 
 
 # ============================================================
@@ -1148,7 +1088,6 @@ def run_check_all():
     data = st.session_state.dvr_data
 
     if data.empty:
-
         return
 
     indexes = list(
@@ -1156,36 +1095,22 @@ def run_check_all():
     )
 
     st.session_state.scan_running = True
+
     st.session_state.scan_completed = 0
+
     st.session_state.scan_total = len(
         indexes
     )
-    st.session_state.scan_started_at = time.time()
 
-    # --------------------------------------------------------
-    # Set everything to Checking
-    # --------------------------------------------------------
-
-    for index in indexes:
-
-        st.session_state.dvr_data.loc[
-            index,
-            "Status"
-        ] = "Checking..."
-
-    # --------------------------------------------------------
-    # Progress UI
-    # --------------------------------------------------------
+    st.session_state.scan_started_at = (
+        time.time()
+    )
 
     progress = st.progress(
         0
     )
 
     progress_text = st.empty()
-
-    # --------------------------------------------------------
-    # Thread pool
-    # --------------------------------------------------------
 
     workers = min(
         MAX_WORKERS,
@@ -1243,6 +1168,11 @@ def run_check_all():
                 "Status"
             ] = status
 
+            add_monitor_log(
+                index,
+                status
+            )
+
             st.session_state.scan_completed += 1
 
             completed = (
@@ -1286,53 +1216,6 @@ def run_check_all():
 
 
 # ============================================================
-# CHECK ONE DVR
-# ============================================================
-
-def check_one_dvr(
-    serial
-):
-
-    serial = normalize_serial(
-        serial
-    )
-
-    if not serial:
-
-        return "Offline"
-
-    status = check_dvr_status(
-        serial
-    )
-
-    data = st.session_state.dvr_data
-
-    if not data.empty:
-
-        matches = (
-            data[
-                "DVR Number"
-            ]
-            .astype(str)
-            .apply(
-                normalize_serial
-            )
-            == serial
-        )
-
-        for index in data[
-            matches
-        ].index:
-
-            st.session_state.dvr_data.loc[
-                index,
-                "Status"
-            ] = status
-
-    return status
-
-
-# ============================================================
 # DASHBOARD COUNTS
 # ============================================================
 
@@ -1345,18 +1228,11 @@ def get_counts():
         return {
             "total": 0,
             "online": 0,
-            "offline": 0,
-            "checking": 0,
-            "not_checked": 0
+            "offline": 0
         }
 
-    # --------------------------------------------------------
-    # Guarantee Status column
-    # --------------------------------------------------------
-
     if "Status" not in data.columns:
-
-        data["Status"] = "Not Checked"
+        data["Status"] = ""
 
     return {
 
@@ -1374,211 +1250,257 @@ def get_counts():
                 data["Status"]
                 == "Offline"
             ).sum()
-        ),
-
-        "checking": int(
-            (
-                data["Status"]
-                == "Checking..."
-            ).sum()
-        ),
-
-        "not_checked": int(
-            (
-                data["Status"]
-                == "Not Checked"
-            ).sum()
         )
-
     }
 
 
 # ============================================================
-# CSV
-# ============================================================
-
-def create_csv():
-
-    data = st.session_state.dvr_data.copy()
-
-    # --------------------------------------------------------
-    # SAFETY: never assume Store ID exists
-    # --------------------------------------------------------
-
-    required_columns = [
-        "Store ID",
-        "Site Name",
-        "DVR Number",
-        "Status"
-    ]
-
-    for column in required_columns:
-
-        if column not in data.columns:
-
-            data[column] = ""
-
-    data = data[
-        required_columns
-    ]
-
-    # --------------------------------------------------------
-    # Normalize
-    # --------------------------------------------------------
-
-    for column in required_columns:
-
-        data[column] = data[
-            column
-        ].apply(
-            normalize_serial
-        )
-
-    return data.to_csv(
-        index=False
-    ).encode(
-        "utf-8-sig"
-    )
-
-
-# ============================================================
-# CSS
+# DARK MODE CSS
 # ============================================================
 
 def apply_css():
 
-    dark = st.session_state.dark_mode
-
-    if dark:
-
-        background = "#111718"
-        card_background = "#1d2425"
-        text = "#ffffff"
-        border = "#333b3c"
-        input_background = "#1d2425"
-
-    else:
-
-        background = "#f2f7f7"
-        card_background = "#ffffff"
-        text = "#263238"
-        border = "#d7e4e4"
-        input_background = "#ffffff"
-
     st.markdown(
-        f"""
+        """
         <style>
 
-        .stApp {{
-            background: {background};
-            color: {text};
-        }}
+        .stApp {
+            background:#0f1415 !important;
+            color:#f1f5f5 !important;
+        }
 
-        .main-header {{
-            background: #007e82;
-            color: white;
-            padding: 22px 30px;
-            border-radius: 10px;
-            margin-bottom: 18px;
-        }}
+        .main-header {
+            background:#007e82;
+            color:white;
+            padding:22px 30px;
+            border-radius:10px;
+            margin-bottom:18px;
+        }
 
-        .main-title-text {{
-            font-size: 28px;
-            font-weight: 700;
-        }}
+        .main-title-text {
+            font-size:28px;
+            font-weight:700;
+        }
 
-        .main-subtitle {{
-            font-size: 13px;
-            color: #b8eeee;
-            margin-top: 4px;
-        }}
+        .main-subtitle {
+            font-size:13px;
+            color:#b8eeee;
+            margin-top:4px;
+        }
 
-        .metric-card {{
-            border-radius: 10px;
-            padding: 18px;
-            min-height: 110px;
-            color: white;
-            box-shadow:
-                0 3px 8px rgba(
-                    0,
-                    0,
-                    0,
-                    0.16
-                );
-        }}
+        .metric-card {
+            border-radius:10px;
+            padding:18px;
+            min-height:110px;
+            color:white;
+            box-shadow:0 3px 8px rgba(0,0,0,.35);
+        }
 
-        .metric-title {{
-            font-size: 13px;
-            font-weight: 700;
-        }}
+        .metric-title {
+            font-size:13px;
+            font-weight:700;
+        }
 
-        .metric-value {{
-            font-size: 34px;
-            font-weight: 700;
-            margin-top: 10px;
-        }}
+        .metric-value {
+            font-size:34px;
+            font-weight:700;
+            margin-top:10px;
+        }
 
-        .metric-total {{
-            background: #00a7a5;
-        }}
+        .metric-total {
+            background:#00a7a5;
+        }
 
-        .metric-online {{
-            background: #159447;
-        }}
+        .metric-online {
+            background:#159447;
+        }
 
-        .metric-offline {{
-            background: #d9363e;
-        }}
+        .metric-offline {
+            background:#d9363e;
+        }
 
-        .metric-checking {{
-            background: #1769aa;
-        }}
+        .section-box {
+            background:#171e20 !important;
+            border:1px solid #303a3c !important;
+            border-radius:10px;
+            padding:14px;
+            margin-bottom:14px;
+        }
 
-        .metric-notchecked {{
-            background: #607d8b;
-        }}
+        .section-title {
+            color:#35d0d0 !important;
+            font-size:16px;
+            font-weight:700;
+            margin-bottom:8px;
+        }
 
-        .section-box {{
-            background: {card_background};
-            border: 1px solid {border};
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 14px;
-        }}
+        button {
+            border-radius:7px !important;
+            font-weight:700 !important;
+        }
 
-        .section-title {{
-            color: #007e82;
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }}
+        .load-button button {
+            background:#1769aa !important;
+            color:#ffffff !important;
+            border:1px solid #1769aa !important;
+        }
 
-        .status-online {{
-            color: #159447;
-            font-weight: 700;
-        }}
+        .load-button button:hover {
+            background:#0d568e !important;
+        }
 
-        .status-offline {{
-            color: #d9363e;
-            font-weight: 700;
-        }}
+        .check-button button {
+            background:#159447 !important;
+            color:#ffffff !important;
+            border:1px solid #159447 !important;
+        }
 
-        .status-checking {{
-            color: #1769aa;
-            font-weight: 700;
-        }}
+        .check-button button:hover {
+            background:#107638 !important;
+        }
 
-        .status-notchecked {{
-            color: #607d8b;
-            font-weight: 700;
-        }}
+        .log-button button {
+            background:#007e82 !important;
+            color:#ffffff !important;
+            border:1px solid #007e82 !important;
+        }
 
-        div[data-testid="stMetric"] {{
-            background: {card_background};
-            border: 1px solid {border};
-            padding: 12px;
-            border-radius: 8px;
-        }}
+        .log-button button:hover {
+            background:#00696c !important;
+        }
+
+        .edit-button button {
+            background:#f39c12 !important;
+            color:#ffffff !important;
+            border:1px solid #f39c12 !important;
+        }
+
+        .edit-button button:hover {
+            background:#d98200 !important;
+        }
+
+        .refresh-button button {
+            background:#d9363e !important;
+            color:#ffffff !important;
+            border:1px solid #d9363e !important;
+        }
+
+        .refresh-button button:hover {
+            background:#b52b33 !important;
+        }
+
+        .save-button button {
+            background:#159447 !important;
+            color:#ffffff !important;
+            border:1px solid #159447 !important;
+        }
+
+        .save-button button:hover {
+            background:#107638 !important;
+        }
+
+        .cancel-button button {
+            background:#607d8b !important;
+            color:#ffffff !important;
+            border:1px solid #607d8b !important;
+        }
+
+        .cancel-button button:hover {
+            background:#455a64 !important;
+        }
+
+        .close-button button {
+            background:#d9363e !important;
+            color:#ffffff !important;
+            border:1px solid #d9363e !important;
+        }
+
+        .close-button button:hover {
+            background:#b52b33 !important;
+        }
+
+        .select-button button {
+            background:#1769aa !important;
+            color:#ffffff !important;
+            border:1px solid #1769aa !important;
+        }
+
+        .pencil-button button {
+            background:#f39c12 !important;
+            color:#ffffff !important;
+            border:1px solid #f39c12 !important;
+            min-height:38px !important;
+            font-size:16px !important;
+        }
+
+        .pencil-button button:hover {
+            background:#d98200 !important;
+        }
+
+        .download-button button {
+            background:#007e82 !important;
+            color:#ffffff !important;
+            border:1px solid #007e82 !important;
+        }
+
+        .download-button button:hover {
+            background:#00696c !important;
+        }
+
+        div[data-baseweb="input"] {
+            background:#263235 !important;
+            border:1px solid #46575a !important;
+            border-radius:7px !important;
+        }
+
+        div[data-baseweb="input"]:focus-within {
+            border:1px solid #00a7a5 !important;
+            box-shadow:0 0 0 1px #00a7a5 !important;
+        }
+
+        div[data-baseweb="input"] input {
+            color:#ffffff !important;
+            background:#263235 !important;
+        }
+
+        div[data-baseweb="input"] input::placeholder {
+            color:#9aa7aa !important;
+        }
+
+        div[data-baseweb="input"]:has(input:disabled) {
+            background:#20292b !important;
+            border:1px solid #384548 !important;
+        }
+
+        div[data-baseweb="input"] input:disabled {
+            color:#9ba7aa !important;
+            -webkit-text-fill-color:#9ba7aa !important;
+            opacity:1 !important;
+            cursor:not-allowed !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            background:#263235 !important;
+            border-color:#46575a !important;
+            color:#ffffff !important;
+        }
+
+        label {
+            color:#d9e1e2 !important;
+        }
+
+        .stCaption {
+            color:#9ba7aa !important;
+        }
+
+        div[data-testid="stAlert"] {
+            border-radius:9px !important;
+        }
+
+        div[data-testid="stDataFrame"] {
+            border-radius:8px !important;
+            overflow:hidden !important;
+        }
 
         </style>
         """,
@@ -1595,8 +1517,15 @@ def render_header():
     st.html(
         """
         <div class="main-header">
-            <div class="main-title-text">📹 DVR LIVE MONITORING</div>
-            <div class="main-subtitle">Automatic P2P DVR monitoring</div>
+
+            <div class="main-title-text">
+                📹 DVR LIVE MONITORING
+            </div>
+
+            <div class="main-subtitle">
+                Automatic P2P DVR monitoring
+            </div>
+
         </div>
         """
     )
@@ -1611,25 +1540,293 @@ def render_metrics():
     counts = get_counts()
 
     cards = [
-        ("📹 TOTAL DVR", counts["total"], "metric-total"),
-        ("✓ ONLINE", counts["online"], "metric-online"),
-        ("! OFFLINE", counts["offline"], "metric-offline"),
-        ("↻ CHECKING", counts["checking"], "metric-checking"),
-        ("○ NOT CHECKED", counts["not_checked"], "metric-notchecked"),
+
+        (
+            "📹 TOTAL DVR",
+            counts["total"],
+            "metric-total"
+        ),
+
+        (
+            "✓ ONLINE",
+            counts["online"],
+            "metric-online"
+        ),
+
+        (
+            "! OFFLINE",
+            counts["offline"],
+            "metric-offline"
+        )
     ]
 
-    columns = st.columns(5)
+    columns = st.columns(3)
 
-    for column, (title, value, css_class) in zip(columns, cards):
+    for column, (
+        title,
+        value,
+        css_class
+    ) in zip(
+        columns,
+        cards
+    ):
+
         with column:
+
             st.html(
                 f"""
                 <div class="metric-card {css_class}">
-                    <div class="metric-title">{title}</div>
-                    <div class="metric-value">{value}</div>
+
+                    <div class="metric-title">
+                        {title}
+                    </div>
+
+                    <div class="metric-value">
+                        {value}
+                    </div>
+
                 </div>
                 """
             )
+
+
+# ============================================================
+# UPDATED EXCEL
+# ONLY STORE ID / SITE NAME / DVR NUMBER
+# ============================================================
+
+def create_updated_excel():
+
+    output = io.BytesIO()
+
+    data = st.session_state.dvr_data[
+        [
+            "Store ID",
+            "Site Name",
+            "DVR Number"
+        ]
+    ].copy()
+
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
+
+        data.to_excel(
+            writer,
+            index=False,
+            sheet_name="DVR Data"
+        )
+
+    output.seek(0)
+
+    return output.getvalue()
+
+
+# ============================================================
+# UPDATED CSV
+# ONLY STORE ID / SITE NAME / DVR NUMBER
+# ============================================================
+
+def create_updated_csv():
+
+    data = st.session_state.dvr_data[
+        [
+            "Store ID",
+            "Site Name",
+            "DVR Number"
+        ]
+    ].copy()
+
+    return data.to_csv(
+        index=False
+    ).encode("utf-8")
+
+
+# ============================================================
+# CURRENT TABLE EXCEL
+# INCLUDES STATUS
+# ============================================================
+
+def create_current_table_excel():
+
+    output = io.BytesIO()
+
+    data = st.session_state.dvr_data[
+        [
+            "Store ID",
+            "Site Name",
+            "DVR Number",
+            "Status"
+        ]
+    ].copy()
+
+    data["Status"] = (
+        data["Status"]
+        .replace(
+            {
+                "": "-"
+            }
+        )
+    )
+
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
+
+        data.to_excel(
+            writer,
+            index=False,
+            sheet_name="Current DVR Table"
+        )
+
+    output.seek(0)
+
+    return output.getvalue()
+
+
+# ============================================================
+# CURRENT TABLE CSV
+# INCLUDES STATUS
+# ============================================================
+
+def create_current_table_csv():
+
+    data = st.session_state.dvr_data[
+        [
+            "Store ID",
+            "Site Name",
+            "DVR Number",
+            "Status"
+        ]
+    ].copy()
+
+    data["Status"] = (
+        data["Status"]
+        .replace(
+            {
+                "": "-"
+            }
+        )
+    )
+
+    return data.to_csv(
+        index=False
+    ).encode("utf-8")
+
+
+# ============================================================
+# UPDATED FILE PANEL
+# ============================================================
+
+def render_updated_file():
+
+    if not st.session_state.file_updated:
+        return
+
+    st.markdown(
+        '<div class="section-box">',
+        unsafe_allow_html=True
+    )
+
+    title_col, close_col = st.columns(
+        [8, 1]
+    )
+
+    with title_col:
+
+        st.markdown(
+            '<div class="section-title">💾 UPDATED FILE</div>',
+            unsafe_allow_html=True
+        )
+
+    with close_col:
+
+        st.markdown(
+            '<div class="close-button">',
+            unsafe_allow_html=True
+        )
+
+        close_clicked = st.button(
+            "✖ Close",
+            use_container_width=True,
+            key="close_updated_file"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if close_clicked:
+
+        st.session_state.file_updated = False
+        st.session_state.updated_changes = []
+        st.session_state.updated_file_name = ""
+
+        st.rerun()
+
+    changes = st.session_state.updated_changes
+
+    if changes:
+
+        st.success(
+            "Changes saved successfully."
+        )
+
+        change_data = pd.DataFrame(
+            changes
+        )
+
+        st.dataframe(
+            change_data,
+            width="stretch",
+            hide_index=True
+        )
+
+        st.markdown(
+            "**Download updated file:**"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            excel_bytes = create_updated_excel()
+
+            st.download_button(
+                "📥 Download Updated Excel",
+                data=excel_bytes,
+                file_name=(
+                    st.session_state.updated_file_name
+                    or "updated_dvr_file.xlsx"
+                ),
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                use_container_width=True,
+                key="download_updated_excel"
+            )
+
+        with col2:
+
+            csv_bytes = create_updated_csv()
+
+            st.download_button(
+                "📥 Download Updated CSV",
+                data=csv_bytes,
+                file_name="updated_dvr_file.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_updated_csv"
+            )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
@@ -1649,151 +1846,163 @@ def render_toolbar():
     )
 
     columns = st.columns(
-        7
+        [
+            1.05,
+            1.35,
+            1.15,
+            3.25,
+            1.25
+        ]
     )
 
-    # --------------------------------------------------------
-    # Check All
-    # --------------------------------------------------------
+    # ========================================================
+    # LOAD
+    # ========================================================
 
     with columns[0]:
 
-        if st.button(
-            "🌐 Check All",
-            use_container_width=True,
-            type="primary",
-            disabled=(
-                st.session_state.scan_running
-                or
-                st.session_state.dvr_data.empty
-            )
+        st.markdown(
+            '<div class="load-button">',
+            unsafe_allow_html=True
+        )
+
+        with st.popover(
+            "📂 Load",
+            use_container_width=True
         ):
 
-            run_check_all()
+            uploaded_file = st.file_uploader(
+                "Choose DVR file",
+                type=FILE_TYPES,
+                key="dvr_file_uploader",
+                label_visibility="collapsed"
+            )
 
-            st.rerun()
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
-    # --------------------------------------------------------
-    # Refresh
-    # --------------------------------------------------------
+    # ========================================================
+    # CHECK ALL
+    # ========================================================
 
     with columns[1]:
 
-        if st.button(
-            "🔄 Refresh All",
+        st.markdown(
+            '<div class="check-button">',
+            unsafe_allow_html=True
+        )
+
+        check_clicked = st.button(
+            "🌐 Check All",
             use_container_width=True,
+            key="toolbar_check",
             disabled=(
                 st.session_state.scan_running
                 or
                 st.session_state.dvr_data.empty
             )
-        ):
+        )
 
-            # Refresh All means CHECK ALL DVRs immediately.
-            # It must not reload the Excel and reset statuses.
-            run_check_all()
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
-            st.rerun()
-
-    # --------------------------------------------------------
-    # Show All
-    # --------------------------------------------------------
+    # ========================================================
+    # LOG BUTTON
+    # ========================================================
 
     with columns[2]:
 
-        if st.button(
-            "📋 Show All",
-            use_container_width=True
-        ):
+        st.markdown(
+            '<div class="log-button">',
+            unsafe_allow_html=True
+        )
 
-            st.session_state.search_text = ""
+        log_clicked = st.button(
+            "📝 Log",
+            use_container_width=True,
+            key="toolbar_log"
+        )
 
-            st.rerun()
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
-    # --------------------------------------------------------
-    # Export CSV
-    # --------------------------------------------------------
+    # ========================================================
+    # SPACER
+    # ========================================================
 
     with columns[3]:
 
-        csv_data = create_csv()
+        st.write("")
 
-        st.download_button(
-            "📥 Export CSV",
-            data=csv_data,
-            file_name="DVR_Status_Result.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-
-    # --------------------------------------------------------
-    # Save Excel
-    # --------------------------------------------------------
+    # ========================================================
+    # REFRESH
+    # ========================================================
 
     with columns[4]:
 
-        if st.button(
-            "💾 Save Excel",
-            use_container_width=True
-        ):
+        st.markdown(
+            '<div class="refresh-button">',
+            unsafe_allow_html=True
+        )
 
-            success, message = (
-                save_excel_file()
+        refresh_clicked = st.button(
+            "🔄 Refresh",
+            use_container_width=True,
+            key="toolbar_refresh",
+            disabled=(
+                st.session_state.scan_running
+                or
+                st.session_state.dvr_data.empty
             )
+        )
 
-            if success:
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
-                st.success(
-                    message
-                )
+    # ========================================================
+    # LOG CLICK
+    # ========================================================
 
-            else:
+    if log_clicked:
 
-                st.error(
-                    message
-                )
+        st.session_state.show_log = True
 
-    # --------------------------------------------------------
-    # Dark Mode
-    # --------------------------------------------------------
+        st.rerun()
 
-    with columns[5]:
+    # ========================================================
+    # CHECK CLICK
+    # ========================================================
 
-        if st.button(
-            (
-                "☀️ Light Mode"
-                if st.session_state.dark_mode
-                else
-                "🌙 Dark Mode"
-            ),
-            use_container_width=True
-        ):
+    if check_clicked:
 
-            st.session_state.dark_mode = (
-                not st.session_state.dark_mode
-            )
+        run_check_all()
 
-            st.rerun()
+        st.rerun()
 
-    # --------------------------------------------------------
-    # Reload Excel
-    # --------------------------------------------------------
+    # ========================================================
+    # REFRESH CLICK
+    # ========================================================
 
-    with columns[6]:
+    if refresh_clicked:
 
-        if st.button(
-            "📂 Reload Excel",
-            use_container_width=True
-        ):
+        run_check_all()
 
-            load_excel()
-
-            st.rerun()
+        st.rerun()
 
     st.markdown(
-        "</div>",
+        '</div>',
         unsafe_allow_html=True
     )
+
+    return uploaded_file
 
 
 # ============================================================
@@ -1814,12 +2023,15 @@ def render_search():
 
     columns = st.columns(
         [
-            3,
-            1,
-            1,
-            1
+            4.5,
+            1.5,
+            1.2
         ]
     )
+
+    # ========================================================
+    # SEARCH
+    # ========================================================
 
     with columns[0]:
 
@@ -1831,6 +2043,11 @@ def render_search():
             key="search_text"
         )
 
+    # ========================================================
+    # STATUS
+    # ONLY ALL / ONLINE / OFFLINE
+    # ========================================================
+
     with columns[1]:
 
         status_filter = st.selectbox(
@@ -1838,65 +2055,174 @@ def render_search():
             [
                 "All",
                 "Online",
-                "Offline",
-                "Checking...",
-                "Not Checked"
-            ]
+                "Offline"
+            ],
+            key="status_filter"
         )
+
+    # ========================================================
+    # EDIT
+    # ========================================================
 
     with columns[2]:
 
-        check_serial = st.text_input(
-            "Check One DVR",
-            placeholder="DVR/P2P Number"
+        st.markdown(
+            '<div class="edit-button">',
+            unsafe_allow_html=True
         )
 
-    with columns[3]:
+        edit_clicked = st.button(
+            "✏️ Edit",
+            use_container_width=True,
+            key="search_edit",
+            disabled=(
+                st.session_state.dvr_data.empty
+            )
+        )
 
-        if st.button(
-            "🔍 Check One",
-            use_container_width=True
-        ):
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
-            if not check_serial.strip():
+    # ========================================================
+    # EDIT CLICK
+    # ========================================================
 
-                st.warning(
-                    "Enter a DVR/P2P serial number."
+    if edit_clicked:
+
+        query = normalize_serial(
+            search
+        ).strip().lower()
+
+        if not query:
+
+            reset_edit_state()
+
+            st.warning(
+                "Enter Store ID, Site Name or DVR Serial Number in Search first."
+            )
+
+        else:
+
+            data = (
+                st.session_state.dvr_data
+                .copy()
+            )
+
+            exact_matches = data[
+                data["Store ID"]
+                .apply(normalize_serial)
+                .str.lower()
+                .eq(query)
+                |
+                data["Site Name"]
+                .apply(normalize_serial)
+                .str.lower()
+                .eq(query)
+                |
+                data["DVR Number"]
+                .apply(normalize_serial)
+                .str.lower()
+                .eq(query)
+            ]
+
+            if len(exact_matches) == 1:
+
+                st.session_state.edit_index = (
+                    exact_matches.index[0]
                 )
 
-            else:
+                st.session_state.edit_mode = True
 
-                with st.spinner(
-                    f"Checking {check_serial}..."
-                ):
+                st.session_state.edit_candidates = []
 
-                    status = check_one_dvr(
-                        check_serial
-                    )
-
-                if status == "Online":
-
-                    st.success(
-                        f"{check_serial}: Online"
-                    )
-
-                else:
-
-                    st.error(
-                        f"{check_serial}: Offline"
-                    )
+                st.session_state.edit_store_enabled = False
+                st.session_state.edit_site_enabled = False
+                st.session_state.edit_dvr_enabled = False
 
                 st.rerun()
 
+            elif len(exact_matches) > 1:
+
+                st.session_state.edit_mode = True
+
+                st.session_state.edit_index = None
+
+                st.session_state.edit_candidates = (
+                    exact_matches.index.tolist()
+                )
+
+                st.rerun()
+
+            else:
+
+                searchable = (
+                    data["Store ID"]
+                    .apply(normalize_serial)
+                    .str.lower()
+                    + " "
+                    +
+                    data["Site Name"]
+                    .apply(normalize_serial)
+                    .str.lower()
+                    + " "
+                    +
+                    data["DVR Number"]
+                    .apply(normalize_serial)
+                    .str.lower()
+                )
+
+                partial_matches = data[
+                    searchable.str.contains(
+                        query,
+                        na=False,
+                        regex=False
+                    )
+                ]
+
+                if partial_matches.empty:
+
+                    reset_edit_state()
+
+                    st.error(
+                        "No matching DVR found."
+                    )
+
+                elif len(partial_matches) == 1:
+
+                    st.session_state.edit_index = (
+                        partial_matches.index[0]
+                    )
+
+                    st.session_state.edit_mode = True
+
+                    st.session_state.edit_candidates = []
+
+                    st.session_state.edit_store_enabled = False
+                    st.session_state.edit_site_enabled = False
+                    st.session_state.edit_dvr_enabled = False
+
+                    st.rerun()
+
+                else:
+
+                    st.session_state.edit_mode = True
+
+                    st.session_state.edit_index = None
+
+                    st.session_state.edit_candidates = (
+                        partial_matches.index.tolist()
+                    )
+
+                    st.rerun()
+
     st.markdown(
-        "</div>",
+        '</div>',
         unsafe_allow_html=True
     )
 
-    return (
-        search,
-        status_filter
-    )
+    return search, status_filter
 
 
 # ============================================================
@@ -1914,31 +2240,10 @@ def filter_data(
     )
 
     if data.empty:
-
         return data
 
-    # --------------------------------------------------------
-    # Guarantee columns
-    # --------------------------------------------------------
-
-    for column in [
-        "Store ID",
-        "Site Name",
-        "DVR Number",
-        "Status"
-    ]:
-
-        if column not in data.columns:
-
-            data[column] = ""
-
-    # --------------------------------------------------------
-    # Search
-    # --------------------------------------------------------
-
     search = (
-        search
-        or ""
+        search or ""
     ).strip().lower()
 
     if search:
@@ -1962,13 +2267,10 @@ def filter_data(
         data = data[
             searchable.str.contains(
                 search,
-                na=False
+                na=False,
+                regex=False
             )
         ]
-
-    # --------------------------------------------------------
-    # Status
-    # --------------------------------------------------------
 
     if status_filter != "All":
 
@@ -1981,37 +2283,693 @@ def filter_data(
 
 
 # ============================================================
-# STATUS DISPLAY
+# STATUS STYLE
 # ============================================================
 
-def style_status(
-    value
-):
+def style_status(value):
 
     if value == "Online":
 
         return (
-            "color: #159447; "
-            "font-weight: bold;"
+            "color:#159447;"
+            "font-weight:bold;"
         )
 
     if value == "Offline":
 
         return (
-            "color: #d9363e; "
-            "font-weight: bold;"
-        )
-
-    if value == "Checking...":
-
-        return (
-            "color: #1769aa; "
-            "font-weight: bold;"
+            "color:#d9363e;"
+            "font-weight:bold;"
         )
 
     return (
-        "color: #607d8b; "
-        "font-weight: bold;"
+        "color:#9ba7aa;"
+        "font-weight:bold;"
+    )
+
+
+# ============================================================
+# EDIT PANEL
+# ============================================================
+
+def render_edit():
+
+    if not st.session_state.edit_mode:
+        return
+
+    st.markdown(
+        '<div class="section-box">',
+        unsafe_allow_html=True
+    )
+
+    title_col, close_col = st.columns(
+        [8, 1]
+    )
+
+    with title_col:
+
+        st.markdown(
+            '<div class="section-title">✏️ EDIT DVR</div>',
+            unsafe_allow_html=True
+        )
+
+    with close_col:
+
+        st.markdown(
+            '<div class="close-button">',
+            unsafe_allow_html=True
+        )
+
+        close_edit_clicked = st.button(
+            "✖ Close",
+            use_container_width=True,
+            key="close_edit_panel"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if close_edit_clicked:
+
+        reset_edit_state()
+
+        st.rerun()
+
+    data = st.session_state.dvr_data
+
+    if data.empty:
+
+        st.info(
+            "No DVR records available."
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        return
+
+    # ========================================================
+    # MULTIPLE MATCHES
+    # ========================================================
+
+    candidates = (
+        st.session_state.get(
+            "edit_candidates",
+            []
+        )
+    )
+
+    if (
+        st.session_state.edit_index is None
+        and candidates
+    ):
+
+        st.warning(
+            "Multiple DVRs found. Select the DVR you want to edit."
+        )
+
+        options = []
+
+        option_to_index = {}
+
+        for index in candidates:
+
+            row = data.loc[index]
+
+            label = (
+                f"Store ID: "
+                f"{normalize_serial(row['Store ID']) or '-'}"
+                f" | "
+                f"Site: "
+                f"{normalize_serial(row['Site Name']) or '-'}"
+                f" | "
+                f"DVR: "
+                f"{normalize_serial(row['DVR Number'])}"
+            )
+
+            options.append(label)
+
+            option_to_index[label] = index
+
+        selected = st.selectbox(
+            "Select DVR",
+            options,
+            key="edit_selected_dvr"
+        )
+
+        st.markdown(
+            '<div class="select-button">',
+            unsafe_allow_html=True
+        )
+
+        select_clicked = st.button(
+            "Select DVR",
+            use_container_width=True,
+            key="select_edit_dvr"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        if select_clicked:
+
+            st.session_state.edit_index = (
+                option_to_index[selected]
+            )
+
+            st.session_state.edit_candidates = []
+
+            st.session_state.edit_store_enabled = False
+            st.session_state.edit_site_enabled = False
+            st.session_state.edit_dvr_enabled = False
+
+            st.rerun()
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        return
+
+    # ========================================================
+    # SELECTED DVR
+    # ========================================================
+
+    selected_index = (
+        st.session_state.edit_index
+    )
+
+    if (
+        selected_index is None
+        or selected_index not in data.index
+    ):
+
+        st.info(
+            "Use the Search box above and click ✏️ Edit."
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        return
+
+    row = data.loc[
+        selected_index
+    ]
+
+    st.success(
+        "DVR found. Edit the details below."
+    )
+
+    # ========================================================
+    # CURRENT VALUES
+    # ========================================================
+
+    current_col1, current_col2, current_col3 = (
+        st.columns(3)
+    )
+
+    with current_col1:
+
+        st.caption(
+            "Current Store ID"
+        )
+
+        st.write(
+            normalize_serial(
+                row["Store ID"]
+            )
+            or "-"
+        )
+
+    with current_col2:
+
+        st.caption(
+            "Current Site Name"
+        )
+
+        st.write(
+            normalize_serial(
+                row["Site Name"]
+            )
+            or "-"
+        )
+
+    with current_col3:
+
+        st.caption(
+            "Current DVR Serial"
+        )
+
+        st.write(
+            normalize_serial(
+                row["DVR Number"]
+            )
+            or "-"
+        )
+
+    st.markdown(
+        "**Enter New Values**"
+    )
+
+    # ========================================================
+    # STORE ID
+    # ========================================================
+
+    store_col, store_pencil = st.columns(
+        [10, 1]
+    )
+
+    with store_col:
+
+        new_store_id = st.text_input(
+            "Store ID",
+            value=normalize_serial(
+                row["Store ID"]
+            ),
+            key=f"edit_store_value_{selected_index}",
+            disabled=(
+                not st.session_state.edit_store_enabled
+            )
+        )
+
+    with store_pencil:
+
+        st.markdown(
+            '<div class="pencil-button">',
+            unsafe_allow_html=True
+        )
+
+        store_edit_clicked = st.button(
+            "✏️",
+            key=f"pencil_store_{selected_index}",
+            use_container_width=True
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if store_edit_clicked:
+
+        st.session_state.edit_store_enabled = True
+
+        st.rerun()
+
+    # ========================================================
+    # SITE NAME
+    # ========================================================
+
+    site_col, site_pencil = st.columns(
+        [10, 1]
+    )
+
+    with site_col:
+
+        new_site_name = st.text_input(
+            "Site Name",
+            value=normalize_serial(
+                row["Site Name"]
+            ),
+            key=f"edit_site_value_{selected_index}",
+            disabled=(
+                not st.session_state.edit_site_enabled
+            )
+        )
+
+    with site_pencil:
+
+        st.markdown(
+            '<div class="pencil-button">',
+            unsafe_allow_html=True
+        )
+
+        site_edit_clicked = st.button(
+            "✏️",
+            key=f"pencil_site_{selected_index}",
+            use_container_width=True
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if site_edit_clicked:
+
+        st.session_state.edit_site_enabled = True
+
+        st.rerun()
+
+    # ========================================================
+    # DVR SERIAL
+    # ========================================================
+
+    dvr_col, dvr_pencil = st.columns(
+        [10, 1]
+    )
+
+    with dvr_col:
+
+        new_dvr_number = st.text_input(
+            "DVR Serial Number",
+            value=normalize_serial(
+                row["DVR Number"]
+            ),
+            key=f"edit_dvr_value_{selected_index}",
+            disabled=(
+                not st.session_state.edit_dvr_enabled
+            )
+        )
+
+    with dvr_pencil:
+
+        st.markdown(
+            '<div class="pencil-button">',
+            unsafe_allow_html=True
+        )
+
+        dvr_edit_clicked = st.button(
+            "✏️",
+            key=f"pencil_dvr_{selected_index}",
+            use_container_width=True
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if dvr_edit_clicked:
+
+        st.session_state.edit_dvr_enabled = True
+
+        st.rerun()
+
+    st.write("")
+
+    # ========================================================
+    # SAVE / CANCEL
+    # ========================================================
+
+    save_col, cancel_col = st.columns(
+        [1, 1]
+    )
+
+    with save_col:
+
+        st.markdown(
+            '<div class="save-button">',
+            unsafe_allow_html=True
+        )
+
+        save_clicked = st.button(
+            "💾 Save Changes",
+            use_container_width=True,
+            key="save_edit_dvr"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    with cancel_col:
+
+        st.markdown(
+            '<div class="cancel-button">',
+            unsafe_allow_html=True
+        )
+
+        cancel_clicked = st.button(
+            "✖ Cancel",
+            use_container_width=True,
+            key="cancel_edit_dvr"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    # ========================================================
+    # SAVE
+    # ========================================================
+
+    if save_clicked:
+
+        old_store_id = normalize_serial(
+            row["Store ID"]
+        )
+
+        old_site_name = normalize_serial(
+            row["Site Name"]
+        )
+
+        old_dvr_number = normalize_serial(
+            row["DVR Number"]
+        )
+
+        new_store_id = normalize_serial(
+            new_store_id
+        )
+
+        new_site_name = normalize_serial(
+            new_site_name
+        )
+
+        new_dvr_number = normalize_serial(
+            new_dvr_number
+        )
+
+        if not new_dvr_number:
+
+            st.error(
+                "DVR Serial Number is required."
+            )
+
+            return
+
+        changes = []
+
+        if old_store_id != new_store_id:
+
+            changes.append(
+                {
+                    "Field": "Store ID",
+                    "Old Value": old_store_id or "-",
+                    "New Value": new_store_id or "-"
+                }
+            )
+
+        if old_site_name != new_site_name:
+
+            changes.append(
+                {
+                    "Field": "Site Name",
+                    "Old Value": old_site_name or "-",
+                    "New Value": new_site_name or "-"
+                }
+            )
+
+        if old_dvr_number != new_dvr_number:
+
+            changes.append(
+                {
+                    "Field": "DVR Serial Number",
+                    "Old Value": old_dvr_number or "-",
+                    "New Value": new_dvr_number or "-"
+                }
+            )
+
+        if not changes:
+
+            st.warning(
+                "No changes were made."
+            )
+
+            return
+
+        # ====================================================
+        # UPDATE DATA
+        # ====================================================
+
+        st.session_state.dvr_data.loc[
+            selected_index,
+            "Store ID"
+        ] = new_store_id
+
+        st.session_state.dvr_data.loc[
+            selected_index,
+            "Site Name"
+        ] = new_site_name
+
+        st.session_state.dvr_data.loc[
+            selected_index,
+            "DVR Number"
+        ] = new_dvr_number
+
+        # New DVR details need checking again.
+        # Blank is used instead of showing "Not Checked".
+
+        st.session_state.dvr_data.loc[
+            selected_index,
+            "Status"
+        ] = ""
+
+        # ====================================================
+        # UPDATED FILE
+        # ====================================================
+
+        st.session_state.file_updated = True
+
+        st.session_state.updated_changes = changes
+
+        original_name = (
+            st.session_state.uploaded_file_name
+            or "DVR_File.xlsx"
+        )
+
+        if "." in original_name:
+
+            base_name = (
+                original_name.rsplit(
+                    ".",
+                    1
+                )[0]
+            )
+
+        else:
+
+            base_name = original_name
+
+        st.session_state.updated_file_name = (
+            f"{base_name}_UPDATED.xlsx"
+        )
+
+        # ====================================================
+        # CLOSE EDIT AUTOMATICALLY
+        # ====================================================
+
+        reset_edit_state()
+
+        st.rerun()
+
+    # ========================================================
+    # CANCEL
+    # ========================================================
+
+    if cancel_clicked:
+
+        reset_edit_state()
+
+        st.rerun()
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# MONITORING LOG PANEL
+# ============================================================
+
+def render_monitor_log():
+
+    if not st.session_state.show_log:
+        return
+
+    st.markdown(
+        '<div class="section-box">',
+        unsafe_allow_html=True
+    )
+
+    title_col, close_col = st.columns(
+        [8, 1]
+    )
+
+    with title_col:
+
+        st.markdown(
+            '<div class="section-title">📝 ONLINE / OFFLINE LOG</div>',
+            unsafe_allow_html=True
+        )
+
+    with close_col:
+
+        st.markdown(
+            '<div class="close-button">',
+            unsafe_allow_html=True
+        )
+
+        close_log_clicked = st.button(
+            "✖ Close",
+            use_container_width=True,
+            key="close_log"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    if close_log_clicked:
+
+        st.session_state.show_log = False
+
+        st.rerun()
+
+    log_data = st.session_state.monitor_log
+
+    if log_data.empty:
+
+        st.info(
+            "No Online / Offline log available yet. "
+            "Run Check All or Refresh."
+        )
+
+    else:
+
+        st.caption(
+            f"Total log entries: {len(log_data)}"
+        )
+
+        st.dataframe(
+            log_data.iloc[::-1],
+            width="stretch",
+            height=350,
+            hide_index=True
+        )
+
+        log_csv = log_data.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            "📥 Download Online / Offline Log",
+            data=log_csv,
+            file_name=(
+                "DVR_Online_Offline_Log.csv"
+            ),
+            mime="text/csv",
+            use_container_width=True,
+            key="download_monitor_log"
+        )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
     )
 
 
@@ -2019,19 +2977,43 @@ def style_status(
 # TABLE
 # ============================================================
 
-def render_table(
-    filtered_data
-):
+def render_table(filtered_data):
 
     st.markdown(
         '<div class="section-box">',
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        '<div class="section-title">DVR LIST</div>',
-        unsafe_allow_html=True
+    # ========================================================
+    # TABLE HEADER + DOWNLOAD
+    # ========================================================
+
+    title_col, download_col = st.columns(
+        [7, 2]
     )
+
+    with title_col:
+
+        st.markdown(
+            '<div class="section-title">DVR LIST</div>',
+            unsafe_allow_html=True
+        )
+
+    with download_col:
+
+        current_excel = create_current_table_excel()
+
+        st.download_button(
+            "📥 Download Current Table",
+            data=current_excel,
+            file_name="Current_DVR_Table.xlsx",
+            mime=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+            use_container_width=True,
+            key="download_current_table_excel"
+        )
 
     if filtered_data.empty:
 
@@ -2063,14 +3045,25 @@ def render_table(
         ]
     ].copy()
 
+    # ========================================================
+    # REMOVE INTERNAL BLANK STATUS
+    # ========================================================
+
+    display_data["Status"] = (
+        display_data["Status"]
+        .replace(
+            {
+                "": "-"
+            }
+        )
+    )
+
     styled = (
         display_data
         .style
         .map(
             style_status,
-            subset=[
-                "Status"
-            ]
+            subset=["Status"]
         )
     )
 
@@ -2081,284 +3074,20 @@ def render_table(
         hide_index=True
     )
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
+    # ========================================================
+    # CSV DOWNLOAD ALSO
+    # ========================================================
+
+    current_csv = create_current_table_csv()
+
+    st.download_button(
+        "📄 Download Current Table CSV",
+        data=current_csv,
+        file_name="Current_DVR_Table.csv",
+        mime="text/csv",
+        use_container_width=True,
+        key="download_current_table_csv"
     )
-
-
-# ============================================================
-# UPDATE DVR
-# ============================================================
-
-def render_update():
-
-    st.markdown(
-        '<div class="section-box">',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-title">✏️ Select DVR for Update</div>',
-        unsafe_allow_html=True
-    )
-
-    data = st.session_state.dvr_data
-
-    if data.empty:
-
-        st.info(
-            "No DVR records available."
-        )
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-        return
-
-    options = []
-
-    for index, row in data.iterrows():
-
-        options.append(
-            (
-                index,
-                (
-                    f"{normalize_serial(row['Store ID'])}"
-                    " | "
-                    f"{normalize_serial(row['Site Name'])}"
-                    " | "
-                    f"{normalize_serial(row['DVR Number'])}"
-                )
-            )
-        )
-
-    labels = [
-        x[1]
-        for x in options
-    ]
-
-    selected_label = st.selectbox(
-        "Select DVR",
-        labels,
-        key="selected_dvr"
-    )
-
-    selected_index = None
-
-    for index, label in options:
-
-        if label == selected_label:
-
-            selected_index = index
-
-            break
-
-    if selected_index is None:
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-        return
-
-    row = data.loc[
-        selected_index
-    ]
-
-    col1, col2, col3 = st.columns(
-        3
-    )
-
-    with col1:
-
-        store_id = st.text_input(
-            "Store ID",
-            value=normalize_serial(
-                row["Store ID"]
-            ),
-            key="update_store"
-        )
-
-    with col2:
-
-        site_name = st.text_input(
-            "Site Name",
-            value=normalize_serial(
-                row["Site Name"]
-            ),
-            key="update_site"
-        )
-
-    with col3:
-
-        dvr_number = st.text_input(
-            "DVR Number",
-            value=normalize_serial(
-                row["DVR Number"]
-            ),
-            key="update_dvr"
-        )
-
-    col_save, col_check = st.columns(
-        2
-    )
-
-    with col_save:
-
-        if st.button(
-            "💾 Update & Save",
-            use_container_width=True,
-            type="primary"
-        ):
-
-            dvr_number = normalize_serial(
-                dvr_number
-            )
-
-            if not dvr_number:
-
-                st.error(
-                    "DVR Number is required."
-                )
-
-            else:
-
-                st.session_state.dvr_data.loc[
-                    selected_index,
-                    "Store ID"
-                ] = normalize_serial(
-                    store_id
-                )
-
-                st.session_state.dvr_data.loc[
-                    selected_index,
-                    "Site Name"
-                ] = normalize_serial(
-                    site_name
-                )
-
-                st.session_state.dvr_data.loc[
-                    selected_index,
-                    "DVR Number"
-                ] = dvr_number
-
-                # Status is memory only
-                st.session_state.dvr_data.loc[
-                    selected_index,
-                    "Status"
-                ] = "Not Checked"
-
-                success, message = (
-                    save_excel_file()
-                )
-
-                if success:
-
-                    st.success(
-                        "DVR updated and saved permanently."
-                    )
-
-                else:
-
-                    st.error(
-                        message
-                    )
-
-    with col_check:
-
-        if st.button(
-            "🔍 Check Selected DVR",
-            use_container_width=True
-        ):
-
-            serial = normalize_serial(
-                dvr_number
-            )
-
-            if not serial:
-
-                st.error(
-                    "DVR Number is required."
-                )
-
-            else:
-
-                with st.spinner(
-                    f"Checking {serial}..."
-                ):
-
-                    status = check_one_dvr(
-                        serial
-                    )
-
-                if status == "Online":
-
-                    st.success(
-                        f"{serial}: Online"
-                    )
-
-                else:
-
-                    st.error(
-                        f"{serial}: Offline"
-                    )
-
-                st.rerun()
-
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
-
-
-# ============================================================
-# FILE INFORMATION
-# ============================================================
-
-def render_file_info():
-
-    st.markdown(
-        '<div class="section-box">',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-title">📁 EXCEL FILE</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write(
-        EXCEL_FILE
-    )
-
-    if os.path.isfile(
-        EXCEL_FILE
-    ):
-
-        file_size = os.path.getsize(
-            EXCEL_FILE
-        )
-
-        modified = datetime.datetime.fromtimestamp(
-            os.path.getmtime(
-                EXCEL_FILE
-            )
-        )
-
-        st.caption(
-            f"Size: {file_size:,} bytes  |  "
-            f"Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-
-    else:
-
-        st.error(
-            "Excel file does not exist."
-        )
 
     st.markdown(
         "</div>",
@@ -2372,18 +3101,10 @@ def render_file_info():
 
 def auto_refresh():
 
-    # Browser-side Streamlit rerun every 60 seconds.
-    # st_autorefresh returns an increasing counter:
-    #   0 = first page load
-    #   1 = first automatic refresh
-    #   2 = second automatic refresh
-    #   ...
-    #
-    # We use the counter to run exactly one DVR scan per
-    # automatic refresh. Manual st.rerun() does not increment it.
-
     refresh_count = st_autorefresh(
-        interval=AUTO_REFRESH_SECONDS * 1000,
+        interval=(
+            AUTO_REFRESH_SECONDS * 1000
+        ),
         key="dvr_auto_refresh"
     )
 
@@ -2398,39 +3119,49 @@ def main():
 
     apply_css()
 
-    # --------------------------------------------------------
-    # Initial Excel load
-    # --------------------------------------------------------
-
-    if not st.session_state.loaded:
-
-        load_excel()
-
-    # --------------------------------------------------------
-    # Automatic 60-second refresh
-    # --------------------------------------------------------
-    refresh_count = auto_refresh()
-
-    # Run exactly one complete DVR scan on each automatic
-    # 60-second refresh. Do not run on the first page load.
-    if (
-        refresh_count > 0
-        and not st.session_state.scan_running
-        and not st.session_state.dvr_data.empty
-        and st.session_state.get("last_auto_refresh_count") != refresh_count
-    ):
-        st.session_state.last_auto_refresh_count = refresh_count
-        run_check_all()
-
-    # --------------------------------------------------------
-    # Header
-    # --------------------------------------------------------
-
     render_header()
 
-    # --------------------------------------------------------
-    # Load error
-    # --------------------------------------------------------
+    render_metrics()
+
+    st.write("")
+
+    # ========================================================
+    # CONTROL PANEL
+    # ========================================================
+
+    uploaded_file = render_toolbar()
+
+    # ========================================================
+    # LOAD FILE
+    # ========================================================
+
+    if uploaded_file is not None:
+
+        uploaded_signature = (
+            uploaded_file.name,
+            uploaded_file.size
+        )
+
+        if (
+            st.session_state.get(
+                "uploaded_signature"
+            )
+            != uploaded_signature
+        ):
+
+            if load_uploaded_file(
+                uploaded_file
+            ):
+
+                st.session_state.uploaded_signature = (
+                    uploaded_signature
+                )
+
+                st.rerun()
+
+    # ========================================================
+    # LOAD ERROR
+    # ========================================================
 
     if st.session_state.load_error:
 
@@ -2438,43 +3169,57 @@ def main():
             st.session_state.load_error
         )
 
+    # ========================================================
+    # NO FILE
+    # ========================================================
+
+    if (
+        not st.session_state.loaded
+        or
+        st.session_state.dvr_data.empty
+    ):
+
         st.info(
-            "Make sure your folder contains:\n\n"
-            "DVRMonitoring/\n"
-            "├── app.py\n"
-            "├── requirements.txt\n"
-            "└── DVRlist (1).xlsx"
+            "📂 Load an Excel / CSV DVR file above to start monitoring."
         )
 
-        # Still show controls so the user can reload.
-    
-    # --------------------------------------------------------
-    # Metrics
-    # --------------------------------------------------------
+        auto_refresh()
 
-    render_metrics()
+        return
 
-    st.write("")
+    # ========================================================
+    # AUTOMATIC REFRESH
+    # ========================================================
 
-    # --------------------------------------------------------
-    # Toolbar
-    # --------------------------------------------------------
+    refresh_count = auto_refresh()
 
-    render_toolbar()
+    if (
+        refresh_count > 0
+        and
+        not st.session_state.scan_running
+        and
+        not st.session_state.dvr_data.empty
+        and
+        st.session_state.get(
+            "last_auto_refresh_count"
+        ) != refresh_count
+    ):
 
-    # --------------------------------------------------------
-    # Search
-    # --------------------------------------------------------
+        st.session_state.last_auto_refresh_count = (
+            refresh_count
+        )
 
-    search, status_filter = (
-        render_search()
-    )
+        run_check_all()
 
-    # --------------------------------------------------------
-    # Progress
-    # --------------------------------------------------------
+    # ========================================================
+    # SEARCH
+    # ========================================================
 
-    counts = get_counts()
+    search, status_filter = render_search()
+
+    # ========================================================
+    # PROGRESS
+    # ========================================================
 
     if st.session_state.scan_running:
 
@@ -2497,15 +3242,11 @@ def main():
         )
 
         st.caption(
-            f"Checking "
-            f"{completed} / {total} DVRs "
+            f"Checking {completed} / {total} DVRs "
             f"({int(percent * 100)}%)"
         )
 
-    elif (
-        st.session_state.last_scan_time
-        is not None
-    ):
+    elif st.session_state.last_scan_time is not None:
 
         st.caption(
             "Last scan: "
@@ -2518,37 +3259,40 @@ def main():
     else:
 
         st.caption(
-            f"Ready • Automatic scan every {AUTO_REFRESH_SECONDS} seconds"
+            f"Ready • Automatic scan every "
+            f"{AUTO_REFRESH_SECONDS} seconds"
         )
 
-    # --------------------------------------------------------
-    # Filter
-    # --------------------------------------------------------
+    # ========================================================
+    # EDIT
+    # ========================================================
+
+    render_edit()
+
+    # ========================================================
+    # UPDATED FILE
+    # ========================================================
+
+    render_updated_file()
+
+    # ========================================================
+    # LOG
+    # ========================================================
+
+    render_monitor_log()
+
+    # ========================================================
+    # TABLE
+    # ========================================================
 
     filtered_data = filter_data(
         search,
         status_filter
     )
 
-    # --------------------------------------------------------
-    # Table
-    # --------------------------------------------------------
-
     render_table(
         filtered_data
     )
-
-    # --------------------------------------------------------
-    # Update section
-    # --------------------------------------------------------
-
-    render_update()
-
-    # --------------------------------------------------------
-    # File information
-    # --------------------------------------------------------
-
-    render_file_info()
 
 
 # ============================================================
