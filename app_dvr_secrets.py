@@ -1,3 +1,4 @@
+```python
 import base64
 import datetime
 import hashlib
@@ -33,7 +34,6 @@ FILE_TYPES = ["xlsx", "xls", "csv"]
 # TIMEZONE
 # ============================================================
 
-# Display / application time = India Standard Time
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 
@@ -118,6 +118,13 @@ def initialize_state():
 
     if "uploaded_file_name" not in st.session_state:
         st.session_state.uploaded_file_name = ""
+
+    # ========================================================
+    # STATUS FILTER
+    # ========================================================
+
+    if "quick_status_filter" not in st.session_state:
+        st.session_state.quick_status_filter = "All"
 
     # ========================================================
     # EDIT STATE
@@ -453,6 +460,35 @@ def load_uploaded_file(uploaded_file):
             ]
         ]
 
+        # ====================================================
+        # REMOVE DUPLICATE DVR SERIALS
+        # ====================================================
+
+        clean_data["_DVR_KEY"] = (
+            clean_data["DVR Number"]
+            .apply(normalize_serial)
+            .str.lower()
+        )
+
+        clean_data = clean_data.drop_duplicates(
+            subset=["_DVR_KEY"],
+            keep="first"
+        )
+
+        clean_data.drop(
+            columns=["_DVR_KEY"],
+            inplace=True
+        )
+
+        clean_data.reset_index(
+            drop=True,
+            inplace=True
+        )
+
+        # ====================================================
+        # SAVE
+        # ====================================================
+
         st.session_state.dvr_data = clean_data
 
         st.session_state.loaded = True
@@ -474,6 +510,8 @@ def load_uploaded_file(uploaded_file):
         st.session_state.updated_changes = []
 
         st.session_state.updated_file_name = ""
+
+        st.session_state.quick_status_filter = "All"
 
         st.session_state.monitor_log = pd.DataFrame(
             columns=[
@@ -560,9 +598,6 @@ class UDPClient:
                     2 ** 31
                 )
 
-                # IMPORTANT:
-                # Easy4IP authentication uses UTC.
-                # Do not change this to IST.
                 curdate = (
                     datetime.datetime.now(
                         datetime.timezone.utc
@@ -1064,13 +1099,6 @@ def add_monitor_log(
 
         row = data.loc[index]
 
-        # ====================================================
-        # IMPORTANT:
-        # Always use India Standard Time for display/log.
-        # This works correctly even when Streamlit Cloud
-        # server is running in UTC.
-        # ====================================================
-
         now = datetime.datetime.now(
             INDIA_TZ
         )
@@ -1136,10 +1164,15 @@ def run_check_all():
         indexes
     )
 
-    # Use IST for application timestamp
     st.session_state.scan_started_at = (
         time.time()
     )
+
+    # ========================================================
+    # IMPORTANT:
+    # Do not duplicate rows.
+    # Only update Status of existing rows.
+    # ========================================================
 
     for index in indexes:
 
@@ -1205,6 +1238,10 @@ def run_check_all():
 
                 status = "Offline"
 
+            # =================================================
+            # UPDATE EXISTING ROW ONLY
+            # =================================================
+
             st.session_state.dvr_data.loc[
                 index,
                 "Status"
@@ -1243,11 +1280,6 @@ def run_check_all():
             )
 
     st.session_state.scan_running = False
-
-    # ========================================================
-    # IMPORTANT:
-    # Last scan time is displayed in IST.
-    # ========================================================
 
     st.session_state.last_scan_time = (
         datetime.datetime.now(
@@ -1434,57 +1466,61 @@ def apply_css():
 
         .load-button div.stButton > button {
             background-color:#1769aa !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#1769aa !important;
         }
 
         .check-button div.stButton > button {
             background-color:#159447 !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#159447 !important;
         }
 
         .log-button div.stButton > button {
             background-color:#007e82 !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#007e82 !important;
         }
 
         .edit-button div.stButton > button {
             background-color:#f39c12 !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#f39c12 !important;
         }
 
         .refresh-button div.stButton > button {
             background-color:#d9363e !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#d9363e !important;
+        }
+
+        .online-filter div.stButton > button {
+            background-color:#168b45 !important;
+            border-color:#168b45 !important;
+        }
+
+        .offline-filter div.stButton > button {
+            background-color:#c9343d !important;
+            border-color:#c9343d !important;
+        }
+
+        .all-filter div.stButton > button {
+            background-color:#007e82 !important;
+            border-color:#007e82 !important;
+        }
+
+        .active-filter div.stButton > button {
+            box-shadow:0 0 0 3px #ffffff55 !important;
+            transform:scale(1.01);
         }
 
         .save-button div.stButton > button {
             background-color:#159447 !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#159447 !important;
         }
 
         .cancel-button div.stButton > button {
             background-color:#607d8b !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#607d8b !important;
         }
 
         .pencil-button div.stButton > button {
             background-color:#f39c12 !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#f39c12 !important;
             min-height:38px !important;
             font-size:16px !important;
@@ -1492,8 +1528,6 @@ def apply_css():
 
         .select-button div.stButton > button {
             background-color:#1769aa !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
             border-color:#1769aa !important;
         }
 
@@ -1953,6 +1987,171 @@ def render_updated_file():
 
 
 # ============================================================
+# QUICK STATUS FILTER
+# ============================================================
+
+def render_quick_status_buttons():
+
+    st.markdown(
+        '<div class="section-box">',
+        unsafe_allow_html=True
+    )
+
+    title_col, refresh_col = st.columns(
+        [8, 2]
+    )
+
+    with title_col:
+
+        st.markdown(
+            '<div class="section-title">📊 DVR STATUS FILTER</div>',
+            unsafe_allow_html=True
+        )
+
+    with refresh_col:
+
+        st.markdown(
+            '<div class="refresh-button">',
+            unsafe_allow_html=True
+        )
+
+        refresh_clicked = st.button(
+            "🔄 Refresh",
+            use_container_width=True,
+            key="quick_refresh",
+            disabled=(
+                st.session_state.scan_running
+                or
+                st.session_state.dvr_data.empty
+            )
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    # ========================================================
+    # THREE FILTER BUTTONS
+    # ========================================================
+
+    col1, col2, col3 = st.columns(
+        [1, 1, 1]
+    )
+
+    with col1:
+
+        css = "all-filter"
+
+        if (
+            st.session_state.quick_status_filter
+            == "All"
+        ):
+            css += " active-filter"
+
+        st.markdown(
+            f'<div class="{css}">',
+            unsafe_allow_html=True
+        )
+
+        all_clicked = st.button(
+            "📋 All DVR",
+            use_container_width=True,
+            key="filter_all"
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+    with col2:
+
+        css = "online-filter"
+
+        if (
+            st.session_state.quick_status_filter
+            == "Online"
+        ):
+            css += " active-filter"
+
+        st.markdown(
+            f'<div class="{css}">',
+            unsafe_allow_html=True
+        )
+
+        online_clicked = st.button(
+            "🟢 Online",
+            use_container_width=True,
+            key="filter_online"
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+    with col3:
+
+        css = "offline-filter"
+
+        if (
+            st.session_state.quick_status_filter
+            == "Offline"
+        ):
+            css += " active-filter"
+
+        st.markdown(
+            f'<div class="{css}">',
+            unsafe_allow_html=True
+        )
+
+        offline_clicked = st.button(
+            "🔴 Offline",
+            use_container_width=True,
+            key="filter_offline"
+        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+    # ========================================================
+    # ACTIONS
+    # ========================================================
+
+    if all_clicked:
+
+        st.session_state.quick_status_filter = "All"
+
+        st.rerun()
+
+    if online_clicked:
+
+        st.session_state.quick_status_filter = "Online"
+
+        st.rerun()
+
+    if offline_clicked:
+
+        st.session_state.quick_status_filter = "Offline"
+
+        st.rerun()
+
+    if refresh_clicked:
+
+        run_check_all()
+
+        st.rerun()
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
 # TOOLBAR
 # ============================================================
 
@@ -2095,7 +2294,7 @@ def render_toolbar():
         st.write("")
 
     # ========================================================
-    # UPDATED FILE BUTTON
+    # UPDATED FILE
     # ========================================================
 
     with columns[5]:
@@ -2182,10 +2381,6 @@ def render_search():
         ]
     )
 
-    # ========================================================
-    # SEARCH
-    # ========================================================
-
     with columns[0]:
 
         search = st.text_input(
@@ -2196,25 +2391,32 @@ def render_search():
             key="search_text"
         )
 
-    # ========================================================
-    # STATUS
-    # ========================================================
-
     with columns[1]:
+
+        status_options = [
+            "All",
+            "Online",
+            "Offline"
+        ]
+
+        current_filter = (
+            st.session_state.quick_status_filter
+        )
 
         status_filter = st.selectbox(
             "Status",
-            [
-                "All",
-                "Online",
-                "Offline"
-            ],
+            status_options,
+            index=status_options.index(
+                current_filter
+            ),
             key="status_filter"
         )
 
-    # ========================================================
-    # EDIT
-    # ========================================================
+        if status_filter != current_filter:
+
+            st.session_state.quick_status_filter = (
+                status_filter
+            )
 
     with columns[2]:
 
@@ -2261,19 +2463,11 @@ def render_search():
 
             close_edit_clicked = False
 
-    # ========================================================
-    # CLOSE EDIT
-    # ========================================================
-
     if close_edit_clicked:
 
         reset_edit_state()
 
         st.rerun()
-
-    # ========================================================
-    # EDIT CLICK
-    # ========================================================
 
     if edit_clicked:
 
@@ -2565,10 +2759,6 @@ def render_edit():
 
         return
 
-    # ========================================================
-    # MULTIPLE MATCHES
-    # ========================================================
-
     candidates = (
         st.session_state.get(
             "edit_candidates",
@@ -2651,10 +2841,6 @@ def render_edit():
 
         return
 
-    # ========================================================
-    # SELECTED DVR
-    # ========================================================
-
     selected_index = (
         st.session_state.edit_index
     )
@@ -2682,10 +2868,6 @@ def render_edit():
     st.success(
         "DVR found. Edit the details below."
     )
-
-    # ========================================================
-    # CURRENT VALUES
-    # ========================================================
 
     current_col1, current_col2, current_col3 = (
         st.columns(3)
@@ -2829,8 +3011,8 @@ def render_edit():
     # ========================================================
 
     dvr_col, dvr_pencil = st.columns(
-        [10, 1]
-    )
+        [10, 1
+    ])
 
     with dvr_col:
 
@@ -2870,10 +3052,6 @@ def render_edit():
         st.rerun()
 
     st.write("")
-
-    # ========================================================
-    # SAVE / CANCEL
-    # ========================================================
 
     save_col, cancel_col = st.columns(
         [1, 1]
@@ -2993,10 +3171,6 @@ def render_edit():
 
             return
 
-        # ====================================================
-        # UPDATE DATA
-        # ====================================================
-
         st.session_state.dvr_data.loc[
             selected_index,
             "Store ID"
@@ -3016,10 +3190,6 @@ def render_edit():
             selected_index,
             "Status"
         ] = "Not Checked"
-
-        # ====================================================
-        # UPDATED FILE
-        # ====================================================
 
         st.session_state.file_updated = True
 
@@ -3052,10 +3222,6 @@ def render_edit():
         reset_edit_state()
 
         st.rerun()
-
-    # ========================================================
-    # CLOSE EDIT
-    # ========================================================
 
     if cancel_clicked:
 
@@ -3173,10 +3339,6 @@ def render_table(
         '<div class="section-box">',
         unsafe_allow_html=True
     )
-
-    # ========================================================
-    # TABLE TITLE + DOWNLOAD
-    # ========================================================
 
     title_col, download_col = st.columns(
         [7, 3]
@@ -3371,7 +3533,17 @@ def main():
             refresh_count
         )
 
+        # ====================================================
+        # AUTOMATICALLY CHECK ALL DVRs AGAIN
+        # ====================================================
+
         run_check_all()
+
+    # ========================================================
+    # QUICK ONLINE / OFFLINE BUTTONS
+    # ========================================================
+
+    render_quick_status_buttons()
 
     # ========================================================
     # SEARCH
@@ -3410,10 +3582,6 @@ def main():
 
     elif st.session_state.last_scan_time is not None:
 
-        # ====================================================
-        # DISPLAY LAST SCAN IN IST
-        # ====================================================
-
         st.caption(
             "Last scan: "
             +
@@ -3444,7 +3612,7 @@ def main():
     render_updated_file()
 
     # ========================================================
-    # TABLE
+    # FILTER + TABLE
     # ========================================================
 
     filtered_data = filter_data(
@@ -3470,3 +3638,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+```
