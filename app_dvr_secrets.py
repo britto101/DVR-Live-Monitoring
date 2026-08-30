@@ -1,3 +1,4 @@
+```python
 import base64
 import datetime
 import hashlib
@@ -7,6 +8,7 @@ import socket
 import time
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -26,6 +28,14 @@ MAX_WORKERS = 10
 AUTO_REFRESH_SECONDS = 60
 
 FILE_TYPES = ["xlsx", "xls", "csv"]
+
+
+# ============================================================
+# TIMEZONE
+# ============================================================
+
+# Display / application time = India Standard Time
+INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 
 # ============================================================
@@ -551,8 +561,13 @@ class UDPClient:
                     2 ** 31
                 )
 
+                # IMPORTANT:
+                # Easy4IP authentication uses UTC.
+                # Do not change this to IST.
                 curdate = (
-                    datetime.datetime.utcnow()
+                    datetime.datetime.now(
+                        datetime.timezone.utc
+                    )
                     .strftime(
                         "%Y-%m-%dT%H:%M:%SZ"
                     )
@@ -1050,7 +1065,16 @@ def add_monitor_log(
 
         row = data.loc[index]
 
-        now = datetime.datetime.now()
+        # ====================================================
+        # IMPORTANT:
+        # Always use India Standard Time for display/log.
+        # This works correctly even when Streamlit Cloud
+        # server is running in UTC.
+        # ====================================================
+
+        now = datetime.datetime.now(
+            INDIA_TZ
+        )
 
         new_log = pd.DataFrame(
             [{
@@ -1113,6 +1137,7 @@ def run_check_all():
         indexes
     )
 
+    # Use IST for application timestamp
     st.session_state.scan_started_at = (
         time.time()
     )
@@ -1220,8 +1245,15 @@ def run_check_all():
 
     st.session_state.scan_running = False
 
+    # ========================================================
+    # IMPORTANT:
+    # Last scan time is displayed in IST.
+    # ========================================================
+
     st.session_state.last_scan_time = (
-        datetime.datetime.now()
+        datetime.datetime.now(
+            INDIA_TZ
+        )
     )
 
     progress.progress(
@@ -1279,10 +1311,6 @@ def apply_css():
         """
         <style>
 
-        /* ====================================================
-           GLOBAL DARK MODE
-           ==================================================== */
-
         .stApp {
             background-color:#0b1112 !important;
             color:#f5f7f7 !important;
@@ -1299,10 +1327,6 @@ def apply_css():
         [data-testid="stHeader"] {
             background-color:#0b1112 !important;
         }
-
-        /* ====================================================
-           HEADER
-           ==================================================== */
 
         .main-header {
             background:#007e82 !important;
@@ -1323,10 +1347,6 @@ def apply_css():
             font-size:13px;
             margin-top:4px;
         }
-
-        /* ====================================================
-           METRICS
-           ==================================================== */
 
         .metric-card {
             border-radius:10px;
@@ -1361,10 +1381,6 @@ def apply_css():
             background:#c9343d !important;
         }
 
-        /* ====================================================
-           SECTION
-           ==================================================== */
-
         .section-box {
             background:#151d1f !important;
             border:1px solid #344143 !important;
@@ -1380,25 +1396,16 @@ def apply_css():
             margin-bottom:8px;
         }
 
-        /* ====================================================
-           ALL BUTTONS
-           ==================================================== */
-
         div.stButton > button {
             width:100% !important;
             min-height:40px !important;
-
             background-color:#263235 !important;
-
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
-
             border:1px solid #526265 !important;
             border-radius:7px !important;
-
             font-size:14px !important;
             font-weight:700 !important;
-
             box-shadow:none !important;
         }
 
@@ -1426,25 +1433,12 @@ def apply_css():
             box-shadow:0 0 0 2px rgba(0,167,165,.35) !important;
         }
 
-        /* ====================================================
-           LOAD
-           ==================================================== */
-
         .load-button div.stButton > button {
             background-color:#1769aa !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
             border-color:#1769aa !important;
         }
-
-        .load-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           CHECK
-           ==================================================== */
 
         .check-button div.stButton > button {
             background-color:#159447 !important;
@@ -1453,30 +1447,12 @@ def apply_css():
             border-color:#159447 !important;
         }
 
-        .check-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           LOG
-           ==================================================== */
-
         .log-button div.stButton > button {
             background-color:#007e82 !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
             border-color:#007e82 !important;
         }
-
-        .log-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           EDIT
-           ==================================================== */
 
         .edit-button div.stButton > button {
             background-color:#f39c12 !important;
@@ -1485,30 +1461,12 @@ def apply_css():
             border-color:#f39c12 !important;
         }
 
-        .edit-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           REFRESH
-           ==================================================== */
-
         .refresh-button div.stButton > button {
             background-color:#d9363e !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
             border-color:#d9363e !important;
         }
-
-        .refresh-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           SAVE
-           ==================================================== */
 
         .save-button div.stButton > button {
             background-color:#159447 !important;
@@ -1517,15 +1475,6 @@ def apply_css():
             border-color:#159447 !important;
         }
 
-        .save-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           CLOSE
-           ==================================================== */
-
         .cancel-button div.stButton > button {
             background-color:#607d8b !important;
             color:#ffffff !important;
@@ -1533,33 +1482,14 @@ def apply_css():
             border-color:#607d8b !important;
         }
 
-        .cancel-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           PENCIL
-           ==================================================== */
-
         .pencil-button div.stButton > button {
             background-color:#f39c12 !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
             border-color:#f39c12 !important;
-
             min-height:38px !important;
             font-size:16px !important;
         }
-
-        .pencil-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           SELECT
-           ==================================================== */
 
         .select-button div.stButton > button {
             background-color:#1769aa !important;
@@ -1567,15 +1497,6 @@ def apply_css():
             -webkit-text-fill-color:#ffffff !important;
             border-color:#1769aa !important;
         }
-
-        .select-button div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        /* ====================================================
-           DOWNLOAD
-           ==================================================== */
 
         div.stDownloadButton > button {
             background-color:#007e82 !important;
@@ -1595,10 +1516,6 @@ def apply_css():
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
         }
-
-        /* ====================================================
-           TEXT INPUT
-           ==================================================== */
 
         div[data-baseweb="input"] {
             background-color:#202a2c !important;
@@ -1629,10 +1546,6 @@ def apply_css():
             opacity:1 !important;
         }
 
-        /* ====================================================
-           SELECTBOX
-           ==================================================== */
-
         div[data-baseweb="select"] > div {
             background-color:#202a2c !important;
             border:1px solid #46575a !important;
@@ -1647,10 +1560,6 @@ def apply_css():
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
         }
-
-        /* ====================================================
-           DROPDOWN
-           ==================================================== */
 
         div[data-baseweb="popover"] {
             background-color:#171e20 !important;
@@ -1670,10 +1579,6 @@ def apply_css():
             color:#ffffff !important;
         }
 
-        /* ====================================================
-           LABELS
-           ==================================================== */
-
         label {
             color:#d9e1e2 !important;
         }
@@ -1686,10 +1591,6 @@ def apply_css():
             color:#9ba7aa !important;
         }
 
-        /* ====================================================
-           FILE UPLOADER
-           ==================================================== */
-
         section[data-testid="stFileUploaderDropzone"] {
             background-color:#202a2c !important;
             border:1px dashed #526265 !important;
@@ -1698,10 +1599,6 @@ def apply_css():
         section[data-testid="stFileUploaderDropzone"] * {
             color:#ffffff !important;
         }
-
-        /* ====================================================
-           DATAFRAME
-           ==================================================== */
 
         div[data-testid="stDataFrame"] {
             background-color:#151d1f !important;
@@ -1718,27 +1615,15 @@ def apply_css():
             scrollbar-color:#46575a #151d1f;
         }
 
-        /* ====================================================
-           ALERTS
-           ==================================================== */
-
         div[data-testid="stAlert"] {
             border-radius:9px !important;
         }
-
-        /* ====================================================
-           MARKDOWN
-           ==================================================== */
 
         .stMarkdown,
         .stMarkdown p,
         .stMarkdown span {
             color:#f1f5f5;
         }
-
-        /* ====================================================
-           SCROLLBAR
-           ==================================================== */
 
         ::-webkit-scrollbar {
             width:8px;
@@ -1852,10 +1737,6 @@ def create_updated_excel():
 
     data = st.session_state.dvr_data.copy()
 
-    # UPDATED FILE:
-    # Only Store ID, Site Name and DVR Number.
-    # Status is NOT included in this updated file.
-
     data = data[
         [
             "Store ID",
@@ -1910,9 +1791,6 @@ def create_current_excel():
     output = io.BytesIO()
 
     data = st.session_state.dvr_data.copy()
-
-    # CURRENT TABLE DOWNLOAD:
-    # Includes Status.
 
     data = data[
         [
@@ -2004,6 +1882,7 @@ def render_updated_file():
 
         st.session_state.show_updated_file = False
         st.session_state.file_updated = False
+
         st.rerun()
 
     changes = st.session_state.updated_changes
@@ -3532,12 +3411,18 @@ def main():
 
     elif st.session_state.last_scan_time is not None:
 
+        # ====================================================
+        # DISPLAY LAST SCAN IN IST
+        # ====================================================
+
         st.caption(
             "Last scan: "
             +
             st.session_state.last_scan_time.strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
+            +
+            " IST"
         )
 
     else:
@@ -3586,3 +3471,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+```
