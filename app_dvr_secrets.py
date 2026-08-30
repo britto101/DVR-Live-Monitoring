@@ -46,6 +46,7 @@ try:
     RANDSALT = st.secrets["EASY4IP_RANDSALT"]
 
 except Exception as e:
+
     raise RuntimeError(
         "Missing Easy4IP secrets. Add EASY4IP_USERNAME, "
         "EASY4IP_USERKEY and EASY4IP_RANDSALT to "
@@ -82,6 +83,7 @@ st.set_page_config(
 def initialize_state():
 
     if "dvr_data" not in st.session_state:
+
         st.session_state.dvr_data = pd.DataFrame(
             columns=[
                 "Store ID",
@@ -117,6 +119,13 @@ def initialize_state():
 
     if "uploaded_file_name" not in st.session_state:
         st.session_state.uploaded_file_name = ""
+
+    # ========================================================
+    # STATUS FILTER
+    # ========================================================
+
+    if "status_filter" not in st.session_state:
+        st.session_state.status_filter = "All"
 
     # ========================================================
     # EDIT STATE
@@ -158,6 +167,7 @@ def initialize_state():
     # ========================================================
 
     if "monitor_log" not in st.session_state:
+
         st.session_state.monitor_log = pd.DataFrame(
             columns=[
                 "Date",
@@ -178,13 +188,6 @@ def initialize_state():
     if "load_error" not in st.session_state:
         st.session_state.load_error = ""
 
-    # ========================================================
-    # STATUS FILTER
-    # ========================================================
-
-    if "status_filter" not in st.session_state:
-        st.session_state.status_filter = "All"
-
 
 initialize_state()
 
@@ -199,8 +202,10 @@ def normalize_serial(value):
         return ""
 
     try:
+
         if pd.isna(value):
             return ""
+
     except Exception:
         pass
 
@@ -239,7 +244,10 @@ def clean_column_name(name):
     )
 
 
-def find_column(columns_list, possible_names):
+def find_column(
+    columns_list,
+    possible_names
+):
 
     normalized = {}
 
@@ -491,7 +499,6 @@ def load_uploaded_file(uploaded_file):
 
         st.session_state.show_log = False
 
-        # Reset status filter after new file
         st.session_state.status_filter = "All"
 
         reset_edit_state()
@@ -566,7 +573,7 @@ class UDPClient:
                     2 ** 31
                 )
 
-                # Easy4IP authentication uses UTC
+                # Easy4IP authentication uses UTC.
                 curdate = (
                     datetime.datetime.now(
                         datetime.timezone.utc
@@ -931,7 +938,9 @@ def resolve_p2psrv(serial):
 # CHECK DVR
 # ============================================================
 
-def check_dvr_status(dvr_number):
+def check_dvr_status(
+    dvr_number
+):
 
     serial = normalize_serial(
         dvr_number
@@ -1052,7 +1061,10 @@ def check_dvr_status(dvr_number):
 # ADD MONITORING LOG
 # ============================================================
 
-def add_monitor_log(index, status):
+def add_monitor_log(
+    index,
+    status
+):
 
     try:
 
@@ -1088,12 +1100,14 @@ def add_monitor_log(index, status):
             }]
         )
 
-        st.session_state.monitor_log = pd.concat(
-            [
-                st.session_state.monitor_log,
-                new_log
-            ],
-            ignore_index=True
+        st.session_state.monitor_log = (
+            pd.concat(
+                [
+                    st.session_state.monitor_log,
+                    new_log
+                ],
+                ignore_index=True
+            )
         )
 
     except Exception as e:
@@ -1126,7 +1140,13 @@ def run_check_all():
         indexes
     )
 
-    st.session_state.scan_started_at = time.time()
+    st.session_state.scan_started_at = (
+        time.time()
+    )
+
+    # ========================================================
+    # MARK ALL AS CHECKING
+    # ========================================================
 
     for index in indexes:
 
@@ -1242,7 +1262,7 @@ def run_check_all():
     )
 
     progress_text.success(
-        "DVR scan completed."
+        "DVR scan completed. Online / Offline counts updated."
     )
 
 
@@ -1283,7 +1303,7 @@ def get_counts():
 
 
 # ============================================================
-# CSS
+# DARK MODE CSS
 # ============================================================
 
 def apply_css():
@@ -1309,10 +1329,6 @@ def apply_css():
             background-color:#0b1112 !important;
         }
 
-        /* ====================================================
-           HEADER
-           ==================================================== */
-
         .main-header {
             background:#007e82 !important;
             color:#ffffff !important;
@@ -1332,10 +1348,6 @@ def apply_css():
             font-size:13px;
             margin-top:4px;
         }
-
-        /* ====================================================
-           METRICS
-           ==================================================== */
 
         .metric-card {
             border-radius:10px;
@@ -1370,10 +1382,6 @@ def apply_css():
             background:#c9343d !important;
         }
 
-        /* ====================================================
-           SECTION
-           ==================================================== */
-
         .section-box {
             background:#151d1f !important;
             border:1px solid #344143 !important;
@@ -1389,10 +1397,6 @@ def apply_css():
             margin-bottom:8px;
         }
 
-        /* ====================================================
-           ALL BUTTONS
-           ==================================================== */
-
         div.stButton > button {
             width:100% !important;
             min-height:40px !important;
@@ -1406,15 +1410,11 @@ def apply_css():
             box-shadow:none !important;
         }
 
-        div.stButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            font-weight:700 !important;
-        }
-
+        div.stButton > button p,
         div.stButton > button span {
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
+            font-weight:700 !important;
         }
 
         div.stButton > button:hover {
@@ -1430,118 +1430,40 @@ def apply_css():
             box-shadow:0 0 0 2px rgba(0,167,165,.35) !important;
         }
 
-        /* ====================================================
-           LOAD
-           ==================================================== */
-
         .load-button div.stButton > button {
             background-color:#1769aa !important;
             border-color:#1769aa !important;
         }
-
-        /* ====================================================
-           CHECK
-           ==================================================== */
 
         .check-button div.stButton > button {
             background-color:#159447 !important;
             border-color:#159447 !important;
         }
 
-        /* ====================================================
-           LOG
-           ==================================================== */
-
         .log-button div.stButton > button {
             background-color:#007e82 !important;
             border-color:#007e82 !important;
         }
-
-        /* ====================================================
-           REFRESH
-           ==================================================== */
 
         .refresh-button div.stButton > button {
             background-color:#d9363e !important;
             border-color:#d9363e !important;
         }
 
-        /* ====================================================
-           ONLINE FILTER
-           ==================================================== */
-
-        .online-filter div.stButton > button {
-            background-color:#168b45 !important;
-            border-color:#168b45 !important;
-        }
-
-        .online-filter-selected div.stButton > button {
-            background-color:#21c965 !important;
-            border:3px solid #ffffff !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            box-shadow:0 0 10px rgba(33,201,101,.65) !important;
-        }
-
-        /* ====================================================
-           OFFLINE FILTER
-           ==================================================== */
-
-        .offline-filter div.stButton > button {
-            background-color:#c9343d !important;
-            border-color:#c9343d !important;
-        }
-
-        .offline-filter-selected div.stButton > button {
-            background-color:#ff5964 !important;
-            border:3px solid #ffffff !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            box-shadow:0 0 10px rgba(255,89,100,.65) !important;
-        }
-
-        /* ====================================================
-           ALL FILTER
-           ==================================================== */
-
-        .all-filter-selected div.stButton > button {
-            background-color:#007e82 !important;
-            border:3px solid #ffffff !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            box-shadow:0 0 10px rgba(0,167,165,.65) !important;
-        }
-
-        /* ====================================================
-           EDIT
-           ==================================================== */
-
         .edit-button div.stButton > button {
             background-color:#f39c12 !important;
             border-color:#f39c12 !important;
         }
-
-        /* ====================================================
-           SAVE
-           ==================================================== */
 
         .save-button div.stButton > button {
             background-color:#159447 !important;
             border-color:#159447 !important;
         }
 
-        /* ====================================================
-           CANCEL
-           ==================================================== */
-
         .cancel-button div.stButton > button {
             background-color:#607d8b !important;
             border-color:#607d8b !important;
         }
-
-        /* ====================================================
-           PENCIL
-           ==================================================== */
 
         .pencil-button div.stButton > button {
             background-color:#f39c12 !important;
@@ -1550,18 +1472,32 @@ def apply_css():
             font-size:16px !important;
         }
 
-        /* ====================================================
-           SELECT
-           ==================================================== */
-
         .select-button div.stButton > button {
             background-color:#1769aa !important;
             border-color:#1769aa !important;
         }
 
-        /* ====================================================
-           DOWNLOAD
-           ==================================================== */
+        .filter-all div.stButton > button {
+            background-color:#1769aa !important;
+            border-color:#1769aa !important;
+        }
+
+        .filter-online div.stButton > button {
+            background-color:#168b45 !important;
+            border-color:#168b45 !important;
+        }
+
+        .filter-offline div.stButton > button {
+            background-color:#c9343d !important;
+            border-color:#c9343d !important;
+        }
+
+        .filter-selected div.stButton > button {
+            box-shadow:
+                0 0 0 3px #ffffff,
+                0 0 10px rgba(255,255,255,.45) !important;
+            transform:scale(1.02);
+        }
 
         div.stDownloadButton > button {
             background-color:#007e82 !important;
@@ -1572,19 +1508,11 @@ def apply_css():
             font-weight:700 !important;
         }
 
-        div.stDownloadButton > button p {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
+        div.stDownloadButton > button p,
         div.stDownloadButton > button span {
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
         }
-
-        /* ====================================================
-           INPUT
-           ==================================================== */
 
         div[data-baseweb="input"] {
             background-color:#202a2c !important;
@@ -1608,54 +1536,6 @@ def apply_css():
             box-shadow:0 0 0 1px #00a7a5 !important;
         }
 
-        div[data-baseweb="input"] input:disabled {
-            background-color:#171f21 !important;
-            color:#8d999c !important;
-            -webkit-text-fill-color:#8d999c !important;
-            opacity:1 !important;
-        }
-
-        /* ====================================================
-           SELECT
-           ==================================================== */
-
-        div[data-baseweb="select"] > div {
-            background-color:#202a2c !important;
-            border:1px solid #46575a !important;
-            color:#ffffff !important;
-        }
-
-        div[data-baseweb="select"] span {
-            color:#ffffff !important;
-        }
-
-        div[data-baseweb="select"] input {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        div[data-baseweb="popover"] {
-            background-color:#171e20 !important;
-        }
-
-        ul[role="listbox"] {
-            background-color:#171e20 !important;
-        }
-
-        li[role="option"] {
-            background-color:#171e20 !important;
-            color:#ffffff !important;
-        }
-
-        li[role="option"]:hover {
-            background-color:#263638 !important;
-            color:#ffffff !important;
-        }
-
-        /* ====================================================
-           LABELS
-           ==================================================== */
-
         label {
             color:#d9e1e2 !important;
         }
@@ -1668,10 +1548,6 @@ def apply_css():
             color:#9ba7aa !important;
         }
 
-        /* ====================================================
-           FILE UPLOADER
-           ==================================================== */
-
         section[data-testid="stFileUploaderDropzone"] {
             background-color:#202a2c !important;
             border:1px dashed #526265 !important;
@@ -1680,10 +1556,6 @@ def apply_css():
         section[data-testid="stFileUploaderDropzone"] * {
             color:#ffffff !important;
         }
-
-        /* ====================================================
-           DATAFRAME
-           ==================================================== */
 
         div[data-testid="stDataFrame"] {
             background-color:#151d1f !important;
@@ -1700,27 +1572,15 @@ def apply_css():
             scrollbar-color:#46575a #151d1f;
         }
 
-        /* ====================================================
-           ALERT
-           ==================================================== */
-
         div[data-testid="stAlert"] {
             border-radius:9px !important;
         }
-
-        /* ====================================================
-           MARKDOWN
-           ==================================================== */
 
         .stMarkdown,
         .stMarkdown p,
         .stMarkdown span {
             color:#f1f5f5;
         }
-
-        /* ====================================================
-           SCROLLBAR
-           ==================================================== */
 
         ::-webkit-scrollbar {
             width:8px;
@@ -1763,47 +1623,6 @@ def render_header():
         </div>
         """
     )
-
-
-# ============================================================
-# TOP RIGHT REFRESH BUTTON
-# ============================================================
-
-def render_top_refresh():
-
-    left, right = st.columns(
-        [8.5, 1.5]
-    )
-
-    with right:
-
-        st.markdown(
-            '<div class="refresh-button">',
-            unsafe_allow_html=True
-        )
-
-        refresh_clicked = st.button(
-            "🔄 Refresh",
-            use_container_width=True,
-            key="top_right_refresh",
-            disabled=(
-                st.session_state.scan_running
-                or
-                st.session_state.dvr_data.empty
-            )
-        )
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-    if refresh_clicked:
-
-        # Manual refresh = complete DVR scan
-        run_check_all()
-
-        st.rerun()
 
 
 # ============================================================
@@ -2107,15 +1926,20 @@ def render_toolbar():
         unsafe_allow_html=True
     )
 
+    # ========================================================
+    # MAIN TOOLBAR
+    #
+    # REFRESH IS KEPT ON THE RIGHT SIDE
+    # ========================================================
+
     columns = st.columns(
         [
             1.15,
             1.35,
-            1.20,
-            1.20,
-            1.20,
-            1.20,
-            2.50
+            1.15,
+            1.25,
+            2.0,
+            1.25
         ]
     )
 
@@ -2200,118 +2024,20 @@ def render_toolbar():
         )
 
     # ========================================================
-    # ONLINE FILTER
+    # SPACE
     # ========================================================
 
     with columns[3]:
 
-        if st.session_state.status_filter == "Online":
-
-            css_class = "online-filter-selected"
-
-        else:
-
-            css_class = "online-filter"
-
-        st.markdown(
-            f'<div class="{css_class}">',
-            unsafe_allow_html=True
-        )
-
-        online_clicked = st.button(
-            "🟢 Online",
-            use_container_width=True,
-            key="toolbar_online_filter",
-            disabled=(
-                st.session_state.dvr_data.empty
-            )
-        )
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-    # ========================================================
-    # OFFLINE FILTER
-    # ========================================================
-
-    with columns[4]:
-
-        if st.session_state.status_filter == "Offline":
-
-            css_class = "offline-filter-selected"
-
-        else:
-
-            css_class = "offline-filter"
-
-        st.markdown(
-            f'<div class="{css_class}">',
-            unsafe_allow_html=True
-        )
-
-        offline_clicked = st.button(
-            "🔴 Offline",
-            use_container_width=True,
-            key="toolbar_offline_filter",
-            disabled=(
-                st.session_state.dvr_data.empty
-            )
-        )
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-    # ========================================================
-    # ALL FILTER
-    # ========================================================
-
-    with columns[5]:
-
-        if st.session_state.status_filter == "All":
-
-            css_class = "all-filter-selected"
-
-        else:
-
-            css_class = ""
-
-        st.markdown(
-            f'<div class="{css_class}">',
-            unsafe_allow_html=True
-        )
-
-        all_clicked = st.button(
-            "📋 All",
-            use_container_width=True,
-            key="toolbar_all_filter",
-            disabled=(
-                st.session_state.dvr_data.empty
-            )
-        )
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
+        st.write("")
 
     # ========================================================
     # UPDATED FILE
     # ========================================================
 
-    with columns[6]:
-
-        updated_clicked = False
+    with columns[4]:
 
         if st.session_state.file_updated:
-
-            st.markdown(
-                '<div class="log-button">',
-                unsafe_allow_html=True
-            )
 
             updated_clicked = st.button(
                 "💾 Updated File",
@@ -2319,10 +2045,36 @@ def render_toolbar():
                 key="toolbar_updated_file"
             )
 
-            st.markdown(
-                '</div>',
-                unsafe_allow_html=True
+        else:
+
+            updated_clicked = False
+
+    # ========================================================
+    # REFRESH - RIGHT SIDE
+    # ========================================================
+
+    with columns[5]:
+
+        st.markdown(
+            '<div class="refresh-button">',
+            unsafe_allow_html=True
+        )
+
+        refresh_clicked = st.button(
+            "🔄 Refresh",
+            use_container_width=True,
+            key="toolbar_refresh",
+            disabled=(
+                st.session_state.scan_running
+                or
+                st.session_state.dvr_data.empty
             )
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
 
     # ========================================================
     # ACTIONS
@@ -2332,38 +2084,14 @@ def render_toolbar():
 
         run_check_all()
 
+        # Immediately redraw metrics/table with new status
         st.rerun()
 
-    if online_clicked:
+    if refresh_clicked:
 
-        if st.session_state.status_filter == "Online":
+        run_check_all()
 
-            # Clicking selected Online again = All
-            st.session_state.status_filter = "All"
-
-        else:
-
-            st.session_state.status_filter = "Online"
-
-        st.rerun()
-
-    if offline_clicked:
-
-        if st.session_state.status_filter == "Offline":
-
-            # Clicking selected Offline again = All
-            st.session_state.status_filter = "All"
-
-        else:
-
-            st.session_state.status_filter = "Offline"
-
-        st.rerun()
-
-    if all_clicked:
-
-        st.session_state.status_filter = "All"
-
+        # Immediately redraw metrics/table with new status
         st.rerun()
 
     if log_clicked:
@@ -2387,7 +2115,7 @@ def render_toolbar():
 
 
 # ============================================================
-# SEARCH
+# SEARCH + ONLINE/OFFLINE BUTTONS
 # ============================================================
 
 def render_search():
@@ -2402,10 +2130,17 @@ def render_search():
         unsafe_allow_html=True
     )
 
+    # ========================================================
+    # SEARCH + FILTER BUTTONS
+    # ========================================================
+
     columns = st.columns(
         [
-            8.5,
-            1.5
+            4.7,
+            1.0,
+            1.0,
+            1.0,
+            1.1
         ]
     )
 
@@ -2424,10 +2159,127 @@ def render_search():
         )
 
     # ========================================================
-    # EDIT
+    # ALL BUTTON
     # ========================================================
 
     with columns[1]:
+
+        selected = (
+            st.session_state.status_filter
+            == "All"
+        )
+
+        css_class = (
+            "filter-all filter-selected"
+            if selected
+            else "filter-all"
+        )
+
+        st.markdown(
+            f'<div class="{css_class}">',
+            unsafe_allow_html=True
+        )
+
+        all_clicked = st.button(
+            "📋 All",
+            use_container_width=True,
+            key="filter_all"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        if all_clicked:
+
+            st.session_state.status_filter = "All"
+
+            st.rerun()
+
+    # ========================================================
+    # ONLINE BUTTON
+    # ========================================================
+
+    with columns[2]:
+
+        selected = (
+            st.session_state.status_filter
+            == "Online"
+        )
+
+        css_class = (
+            "filter-online filter-selected"
+            if selected
+            else "filter-online"
+        )
+
+        st.markdown(
+            f'<div class="{css_class}">',
+            unsafe_allow_html=True
+        )
+
+        online_clicked = st.button(
+            "🟢 Online",
+            use_container_width=True,
+            key="filter_online"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        if online_clicked:
+
+            st.session_state.status_filter = "Online"
+
+            st.rerun()
+
+    # ========================================================
+    # OFFLINE BUTTON
+    # ========================================================
+
+    with columns[3]:
+
+        selected = (
+            st.session_state.status_filter
+            == "Offline"
+        )
+
+        css_class = (
+            "filter-offline filter-selected"
+            if selected
+            else "filter-offline"
+        )
+
+        st.markdown(
+            f'<div class="{css_class}">',
+            unsafe_allow_html=True
+        )
+
+        offline_clicked = st.button(
+            "🔴 Offline",
+            use_container_width=True,
+            key="filter_offline"
+        )
+
+        st.markdown(
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        if offline_clicked:
+
+            st.session_state.status_filter = "Offline"
+
+            st.rerun()
+
+    # ========================================================
+    # EDIT
+    # ========================================================
+
+    with columns[4]:
 
         if st.session_state.edit_mode:
 
@@ -2626,7 +2478,9 @@ def render_search():
 # FILTER DATA
 # ============================================================
 
-def filter_data(search):
+def filter_data(
+    search
+):
 
     data = (
         st.session_state.dvr_data
@@ -2670,15 +2524,15 @@ def filter_data(search):
     # STATUS BUTTON FILTER
     # ========================================================
 
-    selected_status = (
+    status_filter = (
         st.session_state.status_filter
     )
 
-    if selected_status != "All":
+    if status_filter != "All":
 
         data = data[
             data["Status"]
-            == selected_status
+            == status_filter
         ]
 
     return data
@@ -3381,7 +3235,9 @@ def render_monitor_log():
 # TABLE
 # ============================================================
 
-def render_table(filtered_data):
+def render_table(
+    filtered_data
+):
 
     st.markdown(
         '<div class="section-box">',
@@ -3398,24 +3254,24 @@ def render_table(filtered_data):
 
     with title_col:
 
-        selected_status = (
+        filter_name = (
             st.session_state.status_filter
         )
 
-        if selected_status == "Online":
+        if filter_name == "Online":
 
-            table_title = "🟢 ONLINE DVR LIST"
+            title_text = "🟢 ONLINE DVR LIST"
 
-        elif selected_status == "Offline":
+        elif filter_name == "Offline":
 
-            table_title = "🔴 OFFLINE DVR LIST"
+            title_text = "🔴 OFFLINE DVR LIST"
 
         else:
 
-            table_title = "DVR LIST"
+            title_text = "DVR LIST"
 
         st.markdown(
-            f'<div class="section-title">{table_title}</div>',
+            f'<div class="section-title">{title_text}</div>',
             unsafe_allow_html=True
         )
 
@@ -3449,17 +3305,13 @@ def render_table(filtered_data):
 
         else:
 
-            selected_status = (
-                st.session_state.status_filter
-            )
-
-            if selected_status == "Online":
+            if st.session_state.status_filter == "Online":
 
                 st.info(
                     "No Online DVRs found."
                 )
 
-            elif selected_status == "Offline":
+            elif st.session_state.status_filter == "Offline":
 
                 st.info(
                     "No Offline DVRs found."
@@ -3479,7 +3331,7 @@ def render_table(filtered_data):
         return
 
     # ========================================================
-    # DISPLAY DATA
+    # DISPLAY
     # ========================================================
 
     display_data = filtered_data[
@@ -3490,30 +3342,6 @@ def render_table(filtered_data):
             "Status"
         ]
     ].copy()
-
-    # ========================================================
-    # REMOVE EXACT DUPLICATE DISPLAY ROWS
-    #
-    # This does not change the original data or scan logic.
-    # It only prevents the same complete row being displayed
-    # multiple times.
-    # ========================================================
-
-    display_data = (
-        display_data
-        .drop_duplicates(
-            subset=[
-                "Store ID",
-                "Site Name",
-                "DVR Number",
-                "Status"
-            ],
-            keep="first"
-        )
-        .reset_index(
-            drop=True
-        )
-    )
 
     styled = (
         display_data
@@ -3564,10 +3392,12 @@ def main():
     render_header()
 
     # ========================================================
-    # TOP RIGHT MANUAL REFRESH
+    # METRICS
+    #
+    # These are calculated from current dvr_data every rerun.
+    # Therefore after scan + rerun they immediately show
+    # updated Online / Offline values.
     # ========================================================
-
-    render_top_refresh()
 
     render_metrics()
 
@@ -3657,14 +3487,28 @@ def main():
             refresh_count
         )
 
-        # Automatic scan
+        # ====================================================
+        # AUTOMATIC SCAN
+        # ====================================================
+
         run_check_all()
 
-        # Do NOT rerun here.
-        # Streamlit continues and displays the newly scanned data.
+        # ====================================================
+        # VERY IMPORTANT
+        #
+        # Rerun after automatic scan so:
+        #
+        # TOTAL
+        # ONLINE
+        # OFFLINE
+        #
+        # counts are immediately refreshed.
+        # ====================================================
+
+        st.rerun()
 
     # ========================================================
-    # SEARCH
+    # SEARCH + ONLINE/OFFLINE BUTTONS
     # ========================================================
 
     search = render_search()
@@ -3730,12 +3574,16 @@ def main():
     render_updated_file()
 
     # ========================================================
-    # TABLE
+    # FILTER DATA
     # ========================================================
 
     filtered_data = filter_data(
         search
     )
+
+    # ========================================================
+    # TABLE
+    # ========================================================
 
     render_table(
         filtered_data
