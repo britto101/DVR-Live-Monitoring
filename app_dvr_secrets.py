@@ -1312,21 +1312,12 @@ def apply_css():
         """
         <style>
 
-        .stApp {
-            background-color:#0b1112 !important;
-            color:#f5f7f7 !important;
-        }
-
-        [data-testid="stAppViewContainer"] {
-            background-color:#0b1112 !important;
-        }
-
-        [data-testid="stMain"] {
-            background-color:#0b1112 !important;
-        }
-
+        .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
         [data-testid="stHeader"] {
             background-color:#0b1112 !important;
+            color:#f5f7f7 !important;
         }
 
         .main-header {
@@ -1357,30 +1348,11 @@ def apply_css():
             box-shadow:0 3px 8px rgba(0,0,0,.45);
         }
 
-        .metric-title {
-            color:#ffffff !important;
-            font-size:13px;
-            font-weight:700;
-        }
-
-        .metric-value {
-            color:#ffffff !important;
-            font-size:34px;
-            font-weight:700;
-            margin-top:10px;
-        }
-
-        .metric-total {
-            background:#008f91 !important;
-        }
-
-        .metric-online {
-            background:#168b45 !important;
-        }
-
-        .metric-offline {
-            background:#c9343d !important;
-        }
+        .metric-title { color:#ffffff !important; font-size:13px; font-weight:700; }
+        .metric-value { color:#ffffff !important; font-size:34px; font-weight:700; margin-top:10px; }
+        .metric-total { background:#008f91 !important; }
+        .metric-online { background:#168b45 !important; }
+        .metric-offline { background:#c9343d !important; }
 
         .section-box {
             background:#151d1f !important;
@@ -1400,7 +1372,7 @@ def apply_css():
         div.stButton > button {
             width:100% !important;
             min-height:40px !important;
-            background-color:#263235 !important;
+            background:#202a2c !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
             border:1px solid #526265 !important;
@@ -1418,92 +1390,50 @@ def apply_css():
         }
 
         div.stButton > button:hover {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            background-color:#304043 !important;
+            background:#293638 !important;
             border-color:#00a7a5 !important;
         }
 
-        div.stButton > button:focus {
+        /* LOAD POPOVER - DARK */
+        .load-button [data-testid="stPopover"] > button,
+        .load-button [data-testid="stPopover"] button {
+            background:#202a2c !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
-            box-shadow:0 0 0 2px rgba(0,167,165,.35) !important;
+            border:1px solid #526265 !important;
+            border-radius:7px !important;
         }
 
-        .load-button div.stButton > button {
-            background-color:#1769aa !important;
-            border-color:#1769aa !important;
+        .load-button [data-testid="stPopover"] button p,
+        .load-button [data-testid="stPopover"] button span {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
         }
 
-        .check-button div.stButton > button {
-            background-color:#159447 !important;
-            border-color:#159447 !important;
-        }
+        .check-button div.stButton > button { background:#159447 !important; border-color:#159447 !important; }
+        .log-button div.stButton > button { background:#007e82 !important; border-color:#007e82 !important; }
+        .refresh-button div.stButton > button { background:#d9363e !important; border-color:#d9363e !important; }
+        .edit-button div.stButton > button { background:#f39c12 !important; border-color:#f39c12 !important; }
+        .save-button div.stButton > button { background:#159447 !important; border-color:#159447 !important; }
+        .cancel-button div.stButton > button { background:#607d8b !important; border-color:#607d8b !important; }
+        .pencil-button div.stButton > button { background:#f39c12 !important; border-color:#f39c12 !important; min-height:38px !important; font-size:16px !important; }
+        .select-button div.stButton > button { background:#1769aa !important; border-color:#1769aa !important; }
 
-        .log-button div.stButton > button {
-            background-color:#007e82 !important;
-            border-color:#007e82 !important;
-        }
-
-        .refresh-button div.stButton > button {
-            background-color:#d9363e !important;
-            border-color:#d9363e !important;
-        }
-
-        .edit-button div.stButton > button {
-            background-color:#f39c12 !important;
-            border-color:#f39c12 !important;
-        }
-
-        .save-button div.stButton > button {
-            background-color:#159447 !important;
-            border-color:#159447 !important;
-        }
-
-        .cancel-button div.stButton > button {
-            background-color:#607d8b !important;
-            border-color:#607d8b !important;
-        }
-
-        .pencil-button div.stButton > button {
-            background-color:#f39c12 !important;
-            border-color:#f39c12 !important;
-            min-height:38px !important;
-            font-size:16px !important;
-        }
-
-        .select-button div.stButton > button {
-            background-color:#1769aa !important;
-            border-color:#1769aa !important;
-        }
-
-        .filter-all div.stButton > button {
-            background-color:#1769aa !important;
-            border-color:#1769aa !important;
-        }
-
-        .filter-online div.stButton > button {
-            background-color:#168b45 !important;
-            border-color:#168b45 !important;
-        }
-
-        .filter-offline div.stButton > button {
-            background-color:#c9343d !important;
-            border-color:#c9343d !important;
-        }
+        .filter-all div.stButton > button { background:#1769aa !important; border-color:#1769aa !important; }
+        .filter-online div.stButton > button { background:#168b45 !important; border-color:#168b45 !important; }
+        .filter-offline div.stButton > button { background:#c9343d !important; border-color:#c9343d !important; }
 
         .filter-selected div.stButton > button {
-            box-shadow:
-                0 0 0 3px #ffffff,
-                0 0 10px rgba(255,255,255,.45) !important;
+            box-shadow:0 0 0 3px #ffffff, 0 0 10px rgba(255,255,255,.45) !important;
             transform:scale(1.02);
         }
 
         div.stDownloadButton > button {
-            background-color:#007e82 !important;
+            width:100% !important;
+            background:#008f96 !important;
             color:#ffffff !important;
             -webkit-text-fill-color:#ffffff !important;
-            border:1px solid #007e82 !important;
+            border:1px solid #008f96 !important;
             border-radius:7px !important;
             font-weight:700 !important;
         }
@@ -1514,121 +1444,12 @@ def apply_css():
             -webkit-text-fill-color:#ffffff !important;
         }
 
-        div[data-baseweb="input"] {
-            background-color:#202a2c !important;
-            border:1px solid #46575a !important;
-            border-radius:7px !important;
-        }
-
-        div[data-baseweb="input"] input {
-            background-color:#202a2c !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        div[data-baseweb="input"] input::placeholder {
-            color:#9ba7aa !important;
-            -webkit-text-fill-color:#9ba7aa !important;
-        }
-
-        div[data-baseweb="input"]:focus-within {
-            border:1px solid #00a7a5 !important;
-            box-shadow:0 0 0 1px #00a7a5 !important;
-        }
-
-        label {
-            color:#d9e1e2 !important;
-        }
-
-        label p {
-            color:#d9e1e2 !important;
-        }
-
-        .stCaption {
-            color:#9ba7aa !important;
-        }
-
-        section[data-testid="stFileUploaderDropzone"] {
-            background-color:#202a2c !important;
-            border:1px dashed #526265 !important;
-        }
-
-        section[data-testid="stFileUploaderDropzone"] * {
-            color:#ffffff !important;
-        }
-
-        div[data-testid="stDataFrame"] {
-            background-color:#151d1f !important;
-            border:1px solid #344143 !important;
-            border-radius:8px !important;
-            overflow:hidden !important;
-        }
-
-        div[data-testid="stDataFrame"] iframe {
-            background-color:#151d1f !important;
-        }
-
-        [data-testid="stDataFrame"] * {
-            scrollbar-color:#46575a #151d1f;
-        }
-
-        div[data-testid="stAlert"] {
-            border-radius:9px !important;
-        }
-
-        .stMarkdown,
-        .stMarkdown p,
-        .stMarkdown span {
-            color:#f1f5f5;
-        }
-
-        ::-webkit-scrollbar {
-            width:8px;
-            height:8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background:#101617;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background:#46575a;
-            border-radius:5px;
-        }
-
-        /* ==================================================
-           FINAL OVERRIDES: LOAD + SEARCH + TABLE
-           ================================================== */
-
-        /* Load popover trigger */
-        .load-button [data-testid="stPopover"] > button {
-            background:#202a2c !important;
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-            border:1px solid #526265 !important;
-            border-radius:7px !important;
-        }
-
-        .load-button [data-testid="stPopover"] > button p,
-        .load-button [data-testid="stPopover"] > button span {
-            color:#ffffff !important;
-            -webkit-text-fill-color:#ffffff !important;
-        }
-
-        .load-button [data-testid="stPopover"] > button:hover {
-            background:#293638 !important;
-            border-color:#00a7a5 !important;
-        }
-
-        /* Search input */
+        /* SEARCH - DARK */
         div[data-testid="stTextInput"] div[data-baseweb="input"],
         div[data-testid="stTextInput"] div[data-baseweb="input"] > div {
             background:#202a2c !important;
+            border:1px solid #526265 !important;
             border-radius:7px !important;
-        }
-
-        div[data-testid="stTextInput"] div[data-baseweb="input"] {
-            border:1px solid #46575a !important;
         }
 
         div[data-testid="stTextInput"] input {
@@ -1649,28 +1470,83 @@ def apply_css():
             box-shadow:0 0 0 1px #00a7a5 !important;
         }
 
-        /* Dataframe outer area */
-        div[data-testid="stDataFrame"] {
+        label, label p { color:#d9e1e2 !important; }
+        .stCaption { color:#9ba7aa !important; }
+
+        section[data-testid="stFileUploaderDropzone"] {
+            background:#202a2c !important;
+            border:1px dashed #526265 !important;
+        }
+        section[data-testid="stFileUploaderDropzone"] * { color:#ffffff !important; }
+
+        /* ==================================================
+           REAL HTML TABLE - ALWAYS DARK
+           ================================================== */
+
+        .dark-table-wrap {
+            width:100%;
+            max-height:500px;
+            overflow:auto;
             background:#080c0d !important;
-            border:1px solid #344143 !important;
-            border-radius:8px !important;
-            overflow:hidden !important;
+            border:1px solid #344143;
+            border-radius:8px;
+            box-sizing:border-box;
+            scrollbar-color:#46575a #101617;
+            scrollbar-width:thin;
         }
 
-        div[data-testid="stDataFrame"] iframe {
+        .dark-table-wrap.log-table-wrap { max-height:350px; }
+
+        table.dark-table {
+            width:100%;
+            border-collapse:collapse;
             background:#080c0d !important;
+            color:#e8eeee !important;
+            margin:0 !important;
         }
+
+        table.dark-table th {
+            position:sticky;
+            top:0;
+            z-index:2;
+            background:#111819 !important;
+            color:#aeb9bb !important;
+            font-weight:700 !important;
+            text-align:left;
+            padding:11px 14px;
+            border:1px solid #303a3c !important;
+            white-space:nowrap;
+        }
+
+        table.dark-table td {
+            background:#080c0d !important;
+            color:#e8eeee !important;
+            padding:10px 14px;
+            border:1px solid #252f31 !important;
+            white-space:nowrap;
+            font-size:14px;
+        }
+
+        table.dark-table tbody tr:hover td { background:#151d1f !important; }
+        table.dark-table td.status-online { color:#21d66b !important; font-weight:700 !important; }
+        table.dark-table td.status-offline { color:#ff5964 !important; font-weight:700 !important; }
+        table.dark-table td.status-checking { color:#4aa3ff !important; font-weight:700 !important; }
+
+        .dark-table-wrap::-webkit-scrollbar { width:8px; height:8px; }
+        .dark-table-wrap::-webkit-scrollbar-track { background:#101617; }
+        .dark-table-wrap::-webkit-scrollbar-thumb { background:#46575a; border-radius:5px; }
+
+        div[data-testid="stAlert"] { border-radius:9px !important; }
+        .stMarkdown, .stMarkdown p, .stMarkdown span { color:#f1f5f5; }
+
+        ::-webkit-scrollbar { width:8px; height:8px; }
+        ::-webkit-scrollbar-track { background:#101617; }
+        ::-webkit-scrollbar-thumb { background:#46575a; border-radius:5px; }
 
         </style>
         """,
         unsafe_allow_html=True
     )
-
-
-# ============================================================
-# HEADER
-# ============================================================
-
 def render_header():
 
     st.html(
@@ -1925,10 +1801,9 @@ def render_updated_file():
             changes
         )
 
-        st.dataframe(
+        render_dark_table(
             change_data,
-            width="stretch",
-            hide_index=True
+            height=250
         )
 
         st.markdown(
@@ -2603,6 +2478,80 @@ def filter_data(
     return data
 
 
+def render_dark_table(data, height=500, table_class=""):
+
+    if data is None or data.empty:
+        return
+
+    data = data.copy()
+    rows = []
+
+    for _, row in data.iterrows():
+
+        cells = []
+
+        for column in data.columns:
+
+            value = row[column]
+            value = "" if pd.isna(value) else str(value)
+
+            escaped = (
+                value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;")
+                .replace("'", "&#39;")
+            )
+
+            css = ""
+
+            if column == "Status":
+
+                if value == "Online":
+                    css = "status-online"
+                elif value == "Offline":
+                    css = "status-offline"
+                elif value == "Checking...":
+                    css = "status-checking"
+
+            cells.append(
+                f'<td class="{css}">{escaped}</td>'
+            )
+
+        rows.append(
+            "<tr>" + "".join(cells) + "</tr>"
+        )
+
+    headers = "".join(
+        f"<th>{str(column)}</th>"
+        for column in data.columns
+    )
+
+    table_html = """
+    <div class="dark-table-wrap {table_class}" style="max-height:{height}px;">
+        <table class="dark-table">
+            <thead>
+                <tr>{headers}</tr>
+            </thead>
+            <tbody>
+                {rows}
+            </tbody>
+        </table>
+    </div>
+    """.format(
+        table_class=table_class,
+        height=height,
+        headers=headers,
+        rows="".join(rows)
+    )
+
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True
+    )
+
+
 # ============================================================
 # STATUS STYLE
 # ============================================================
@@ -3218,9 +3167,7 @@ def render_monitor_log():
         unsafe_allow_html=True
     )
 
-    title_col, close_col = st.columns(
-        [9, 1]
-    )
+    title_col, close_col = st.columns([9, 1])
 
     with title_col:
 
@@ -3250,7 +3197,6 @@ def render_monitor_log():
     if close_log_clicked:
 
         st.session_state.show_log = False
-
         st.rerun()
 
     log_data = st.session_state.monitor_log
@@ -3268,11 +3214,10 @@ def render_monitor_log():
             f"Total log entries: {len(log_data)}"
         )
 
-        st.dataframe(
+        render_dark_table(
             log_data.iloc[::-1],
-            width="stretch",
             height=350,
-            hide_index=True
+            table_class="log-table-wrap"
         )
 
         log_csv = log_data.to_csv(
@@ -3282,9 +3227,7 @@ def render_monitor_log():
         st.download_button(
             "📥 Download Online / Offline Log",
             data=log_csv,
-            file_name=(
-                "DVR_Online_Offline_Log.csv"
-            ),
+            file_name="DVR_Online_Offline_Log.csv",
             mime="text/csv",
             use_container_width=True,
             key="download_monitor_log"
@@ -3294,45 +3237,24 @@ def render_monitor_log():
         "</div>",
         unsafe_allow_html=True
     )
-
-
-# ============================================================
-# TABLE
-# ============================================================
-
-def render_table(
-    filtered_data
-):
+def render_table(filtered_data):
 
     st.markdown(
         '<div class="section-box">',
         unsafe_allow_html=True
     )
 
-    # ========================================================
-    # TABLE TITLE + DOWNLOAD
-    # ========================================================
-
-    title_col, download_col = st.columns(
-        [7, 3]
-    )
+    title_col, download_col = st.columns([7, 3])
 
     with title_col:
 
-        filter_name = (
-            st.session_state.status_filter
-        )
+        filter_name = st.session_state.status_filter
 
         if filter_name == "Online":
-
             title_text = "🟢 ONLINE DVR LIST"
-
         elif filter_name == "Offline":
-
             title_text = "🔴 OFFLINE DVR LIST"
-
         else:
-
             title_text = "DVR LIST"
 
         st.markdown(
@@ -3356,118 +3278,36 @@ def render_table(
             key="download_current_dvr_excel"
         )
 
-    # ========================================================
-    # EMPTY
-    # ========================================================
-
     if filtered_data.empty:
 
         if st.session_state.dvr_data.empty:
-
-            st.info(
-                "No DVR records loaded."
-            )
-
+            st.info("No DVR records loaded.")
+        elif st.session_state.status_filter == "Online":
+            st.info("No Online DVRs found.")
+        elif st.session_state.status_filter == "Offline":
+            st.info("No Offline DVRs found.")
         else:
+            st.info("No DVR records found.")
 
-            if st.session_state.status_filter == "Online":
-
-                st.info(
-                    "No Online DVRs found."
-                )
-
-            elif st.session_state.status_filter == "Offline":
-
-                st.info(
-                    "No Offline DVRs found."
-                )
-
-            else:
-
-                st.info(
-                    "No DVR records found."
-                )
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
-
+        st.markdown("</div>", unsafe_allow_html=True)
         return
 
-    # ========================================================
-    # DISPLAY
-    # ========================================================
+    display_data = filtered_data[[
+        "Store ID",
+        "Site Name",
+        "DVR Number",
+        "Status"
+    ]].copy()
 
-    display_data = filtered_data[
-        [
-            "Store ID",
-            "Site Name",
-            "DVR Number",
-            "Status"
-        ]
-    ].copy()
-
-    styled = (
-        display_data.style
-        .set_properties(
-            **{
-                "background-color": "#080c0d",
-                "color": "#e8eeee",
-                "border-color": "#303a3c",
-                "font-size": "14px"
-            }
-        )
-        .set_table_styles(
-            [
-                {
-                    "selector": "th",
-                    "props": [
-                        ("background-color", "#111819"),
-                        ("color", "#aeb9bb"),
-                        ("font-weight", "600"),
-                        ("border-color", "#303a3c")
-                    ]
-                },
-                {
-                    "selector": "td",
-                    "props": [
-                        ("background-color", "#080c0d"),
-                        ("color", "#e8eeee"),
-                        ("border-color", "#303a3c")
-                    ]
-                },
-                {
-                    "selector": "tbody tr:hover td",
-                    "props": [
-                        ("background-color", "#151d1f")
-                    ]
-                }
-            ]
-        )
-        .map(
-            style_status,
-            subset=["Status"]
-        )
-    )
-
-    st.dataframe(
-        styled,
-        width="stretch",
-        height=500,
-        hide_index=True
+    render_dark_table(
+        display_data,
+        height=500
     )
 
     st.markdown(
         "</div>",
         unsafe_allow_html=True
     )
-
-
-# ============================================================
-# AUTO REFRESH
-# ============================================================
-
 def auto_refresh():
 
     refresh_count = st_autorefresh(
