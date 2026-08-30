@@ -1,4 +1,3 @@
-```python
 import base64
 import datetime
 import hashlib
@@ -3638,4 +3637,3 @@ def main():
 if __name__ == "__main__":
 
     main()
-```
