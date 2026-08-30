@@ -1596,6 +1596,71 @@ def apply_css():
             border-radius:5px;
         }
 
+        /* ==================================================
+           FINAL OVERRIDES: LOAD + SEARCH + TABLE
+           ================================================== */
+
+        /* Load popover trigger */
+        .load-button [data-testid="stPopover"] > button {
+            background:#202a2c !important;
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            border:1px solid #526265 !important;
+            border-radius:7px !important;
+        }
+
+        .load-button [data-testid="stPopover"] > button p,
+        .load-button [data-testid="stPopover"] > button span {
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+        }
+
+        .load-button [data-testid="stPopover"] > button:hover {
+            background:#293638 !important;
+            border-color:#00a7a5 !important;
+        }
+
+        /* Search input */
+        div[data-testid="stTextInput"] div[data-baseweb="input"],
+        div[data-testid="stTextInput"] div[data-baseweb="input"] > div {
+            background:#202a2c !important;
+            border-radius:7px !important;
+        }
+
+        div[data-testid="stTextInput"] div[data-baseweb="input"] {
+            border:1px solid #46575a !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            background:#202a2c !important;
+            color:#ffffff !important;
+            -webkit-text-fill-color:#ffffff !important;
+            caret-color:#ffffff !important;
+        }
+
+        div[data-testid="stTextInput"] input::placeholder {
+            color:#9ba7aa !important;
+            -webkit-text-fill-color:#9ba7aa !important;
+            opacity:1 !important;
+        }
+
+        div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {
+            border-color:#00a7a5 !important;
+            box-shadow:0 0 0 1px #00a7a5 !important;
+        }
+
+        /* Dataframe outer area */
+        div[data-testid="stDataFrame"] {
+            background:#080c0d !important;
+            border:1px solid #344143 !important;
+            border-radius:8px !important;
+            overflow:hidden !important;
+        }
+
+        div[data-testid="stDataFrame"] iframe {
+            background:#080c0d !important;
+        }
+
         </style>
         """,
         unsafe_allow_html=True
@@ -3344,8 +3409,42 @@ def render_table(
     ].copy()
 
     styled = (
-        display_data
-        .style
+        display_data.style
+        .set_properties(
+            **{
+                "background-color": "#080c0d",
+                "color": "#e8eeee",
+                "border-color": "#303a3c",
+                "font-size": "14px"
+            }
+        )
+        .set_table_styles(
+            [
+                {
+                    "selector": "th",
+                    "props": [
+                        ("background-color", "#111819"),
+                        ("color", "#aeb9bb"),
+                        ("font-weight", "600"),
+                        ("border-color", "#303a3c")
+                    ]
+                },
+                {
+                    "selector": "td",
+                    "props": [
+                        ("background-color", "#080c0d"),
+                        ("color", "#e8eeee"),
+                        ("border-color", "#303a3c")
+                    ]
+                },
+                {
+                    "selector": "tbody tr:hover td",
+                    "props": [
+                        ("background-color", "#151d1f")
+                    ]
+                }
+            ]
+        )
         .map(
             style_status,
             subset=["Status"]
