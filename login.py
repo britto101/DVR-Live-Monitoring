@@ -17,7 +17,7 @@ def configure_login_page():
 
 
 # ============================================================
-# LOGIN
+# LOGIN PAGE
 # ============================================================
 
 def login():
@@ -31,7 +31,7 @@ def login():
 
 
     # ========================================================
-    # LOGIN PAGE CSS
+    # CUSTOM CSS
     # ========================================================
 
     st.markdown(
@@ -39,31 +39,27 @@ def login():
         <style>
 
         /* ==================================================
-           PAGE BACKGROUND
+           MAIN BACKGROUND
            ================================================== */
 
         [data-testid="stAppViewContainer"] {
 
             background:
                 radial-gradient(
-                    circle at 50% 40%,
-                    #192638 0%,
-                    #101a29 45%,
-                    #080c13 100%
-                );
+                    circle at 50% 45%,
+                    #142b45 0%,
+                    #0b192b 42%,
+                    #050b14 100%
+                ) !important;
 
             min-height: 100vh;
         }
 
 
-        /* Header */
-
         [data-testid="stHeader"] {
             background: transparent !important;
         }
 
-
-        /* Hide footer */
 
         footer {
             display: none !important;
@@ -71,7 +67,7 @@ def login():
 
 
         /* ==================================================
-           MAIN CONTAINER
+           REMOVE DEFAULT STREAMLIT SPACE
            ================================================== */
 
         .block-container {
@@ -80,11 +76,11 @@ def login():
 
             padding-top: 45px !important;
 
-            padding-bottom: 40px !important;
+            padding-bottom: 45px !important;
 
-            padding-left: 20px !important;
+            padding-left: 15px !important;
 
-            padding-right: 20px !important;
+            padding-right: 15px !important;
         }
 
 
@@ -94,44 +90,69 @@ def login():
 
         .login-card {
 
-            width: 430px;
+            width: 500px;
 
             max-width: 100%;
 
-            margin: 25px auto 0 auto;
+            margin: 0 auto;
 
-            padding: 35px 38px 30px 38px;
+            padding: 42px 44px 32px 44px;
 
             box-sizing: border-box;
 
             background:
                 linear-gradient(
                     145deg,
-                    #192536,
-                    #111a27
+                    rgba(25, 40, 58, 0.98),
+                    rgba(12, 24, 39, 0.98)
                 );
 
-            border: 1px solid #34465c;
+            border: 1px solid #176fd0;
 
-            border-radius: 16px;
+            border-radius: 22px;
 
             box-shadow:
-                0 25px 70px rgba(0, 0, 0, 0.60),
-                0 0 35px rgba(20, 130, 255, 0.08);
+                0 30px 80px rgba(0, 0, 0, 0.55),
+                0 0 50px rgba(0, 110, 255, 0.10);
+
         }
 
 
         /* ==================================================
-           CAMERA AREA
+           LOGO
            ================================================== */
 
-        .camera-container {
+        .logo-area {
 
-            width: 76px;
+            display: flex;
 
-            height: 76px;
+            justify-content: center;
 
-            margin: 0 auto 18px auto;
+            align-items: center;
+
+            margin-bottom: 25px;
+        }
+
+
+        .logo-box {
+
+            width: 110px;
+
+            height: 110px;
+
+            border-radius: 25px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #1595ff,
+                    #0668e8
+                );
+
+            border: 1px solid #42aaff;
+
+            box-shadow:
+                0 0 35px rgba(0, 130, 255, 0.38);
 
             display: flex;
 
@@ -139,21 +160,19 @@ def login():
 
             justify-content: center;
 
-            border-radius: 18px;
-
-            background:
-                linear-gradient(
-                    145deg,
-                    #168cff,
-                    #075bd6
-                );
-
-            border: 1px solid #3aa0ff;
-
-            box-shadow:
-                0 8px 28px rgba(0, 110, 255, 0.28);
-
             overflow: hidden;
+
+        }
+
+
+        .logo-box img {
+
+            width: 82px;
+
+            height: 82px;
+
+            object-fit: contain;
+
         }
 
 
@@ -163,35 +182,41 @@ def login():
 
         .login-title {
 
-            width: 100%;
-
             text-align: center;
 
             font-family:
                 -apple-system,
                 BlinkMacSystemFont,
                 "Segoe UI",
+                Arial,
                 sans-serif;
 
-            font-size: 29px;
+            font-size: 42px;
 
             font-weight: 700;
 
-            line-height: 1.2;
+            line-height: 1.15;
 
             margin: 0;
 
             padding: 0;
+
+            letter-spacing: -1px;
+
         }
 
 
-        .dvr-text {
+        .dvr {
+
             color: #2196ff;
+
         }
 
 
-        .monitor-text {
+        .monitor {
+
             color: #f5f7fb;
+
         }
 
 
@@ -203,55 +228,76 @@ def login():
 
             text-align: center;
 
-            color: #8996a8;
+            color: #94a8bf;
 
-            font-size: 13.5px;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
 
-            line-height: 1.5;
+            font-size: 15px;
 
-            margin-top: 9px;
+            margin-top: 12px;
 
-            margin-bottom: 26px;
+            margin-bottom: 34px;
+
         }
 
 
         /* ==================================================
-           INPUT LABEL
+           LABELS
            ================================================== */
 
         div[data-testid="stTextInput"] label {
 
-            color: #dce2ea !important;
+            color: #f0f4f8 !important;
 
-            font-size: 13.5px !important;
+            font-size: 14px !important;
 
-            font-weight: 500 !important;
+            font-weight: 600 !important;
+
+            margin-bottom: 7px !important;
+
         }
 
 
         /* ==================================================
-           INPUT BOX
+           INPUT CONTAINER
+           ================================================== */
+
+        div[data-testid="stTextInput"] {
+
+            margin-bottom: 17px !important;
+
+        }
+
+
+        /* ==================================================
+           INPUT
            ================================================== */
 
         div[data-testid="stTextInput"] input {
 
-            height: 46px !important;
+            height: 54px !important;
 
-            width: 100% !important;
+            background: #111d2b !important;
 
-            background: #141e2b !important;
+            color: #f4f7fb !important;
 
-            color: #f3f6fa !important;
+            border: 1px solid #41566e !important;
 
-            border: 1px solid #3b4c61 !important;
+            border-radius: 10px !important;
 
-            border-radius: 8px !important;
+            font-size: 15px !important;
 
-            font-size: 14px !important;
+            padding-left: 16px !important;
 
-            padding-left: 13px !important;
+            padding-right: 16px !important;
 
             box-sizing: border-box !important;
+
         }
 
 
@@ -259,9 +305,10 @@ def login():
 
         div[data-testid="stTextInput"] input::placeholder {
 
-            color: #6d7b8e !important;
+            color: #7489a2 !important;
 
             opacity: 1 !important;
+
         }
 
 
@@ -269,22 +316,27 @@ def login():
 
         div[data-testid="stTextInput"] input:focus {
 
-            border-color: #168cff !important;
+            border-color: #2196ff !important;
 
             box-shadow:
-                0 0 0 1px #168cff !important;
+                0 0 0 1px #2196ff,
+                0 0 18px rgba(33, 150, 255, 0.10) !important;
+
         }
 
 
-        /* Password eye */
+        /* ==================================================
+           PASSWORD EYE
+           ================================================== */
 
         div[data-testid="stTextInput"] button {
 
-            color: #8b98aa !important;
+            color: #9db0c5 !important;
 
             background: transparent !important;
 
             border: none !important;
+
         }
 
 
@@ -295,6 +347,7 @@ def login():
         div[data-testid="stFormSubmitButton"] {
 
             margin-top: 12px !important;
+
         }
 
 
@@ -302,29 +355,30 @@ def login():
 
             width: 100% !important;
 
-            height: 47px !important;
+            height: 58px !important;
 
-            border-radius: 8px !important;
+            border-radius: 10px !important;
 
-            border: 1px solid #168cff !important;
+            border: 1px solid #39a5ff !important;
 
             background:
                 linear-gradient(
                     90deg,
-                    #168cff,
-                    #0969e8
+                    #1598ff,
+                    #0869ed
                 ) !important;
 
             color: #ffffff !important;
 
-            font-size: 15px !important;
+            font-size: 18px !important;
 
             font-weight: 600 !important;
 
             box-shadow:
-                0 7px 20px rgba(0, 110, 255, 0.22) !important;
+                0 8px 25px rgba(0, 120, 255, 0.28) !important;
 
             transition: all 0.15s ease !important;
+
         }
 
 
@@ -333,28 +387,30 @@ def login():
             background:
                 linear-gradient(
                     90deg,
-                    #2196ff,
+                    #25a4ff,
                     #0875f5
                 ) !important;
 
-            border-color: #2196ff !important;
+            border-color: #4bb0ff !important;
 
             transform: translateY(-1px) !important;
 
             box-shadow:
-                0 10px 26px rgba(0, 110, 255, 0.30) !important;
+                0 12px 30px rgba(0, 120, 255, 0.38) !important;
+
         }
 
 
         /* ==================================================
-           ERROR MESSAGE
+           ERROR
            ================================================== */
 
         div[data-testid="stAlert"] {
 
-            margin-top: 15px !important;
+            margin-top: 16px !important;
 
-            border-radius: 8px !important;
+            border-radius: 9px !important;
+
         }
 
 
@@ -362,15 +418,40 @@ def login():
            SECURITY FOOTER
            ================================================== */
 
-        .secure-text {
+        .security-area {
 
-            text-align: center;
+            display: flex;
 
-            color: #667488;
+            align-items: center;
 
-            font-size: 11.5px;
+            justify-content: center;
 
-            margin-top: 25px;
+            gap: 18px;
+
+            margin-top: 31px;
+
+        }
+
+
+        .security-line {
+
+            width: 75px;
+
+            height: 1px;
+
+            background: #34485e;
+
+        }
+
+
+        .security-text {
+
+            color: #71869f;
+
+            font-size: 12px;
+
+            white-space: nowrap;
+
         }
 
 
@@ -384,9 +465,10 @@ def login():
 
                 padding-top: 25px !important;
 
-                padding-left: 14px !important;
+                padding-left: 12px !important;
 
-                padding-right: 14px !important;
+                padding-right: 12px !important;
+
             }
 
 
@@ -394,26 +476,64 @@ def login():
 
                 width: 100%;
 
-                max-width: 430px;
+                max-width: 500px;
 
-                margin-top: 15px;
+                padding: 32px 24px 28px 24px;
 
-                padding: 30px 24px 27px 24px;
+                border-radius: 18px;
+
             }
 
 
-            .camera-container {
+            .logo-box {
+
+                width: 92px;
+
+                height: 92px;
+
+                border-radius: 21px;
+
+            }
+
+
+            .logo-box img {
 
                 width: 70px;
 
                 height: 70px;
+
             }
 
 
             .login-title {
 
-                font-size: 26px;
+                font-size: 34px;
+
             }
+
+
+            .login-subtitle {
+
+                font-size: 13px;
+
+                margin-bottom: 28px;
+
+            }
+
+
+            div[data-testid="stTextInput"] input {
+
+                height: 50px !important;
+
+            }
+
+
+            div[data-testid="stFormSubmitButton"] button {
+
+                height: 53px !important;
+
+            }
+
         }
 
         </style>
@@ -423,63 +543,112 @@ def login():
 
 
     # ========================================================
-    # CENTER COLUMN
-    #
-    # This guarantees the entire login page is centered.
+    # CAMERA IMAGE
     # ========================================================
 
-    left, center, right = st.columns(
+    camera_path = Path(__file__).parent / "camera.png"
+
+
+    # ========================================================
+    # CENTER LOGIN CARD
+    # ========================================================
+
+    left_space, center, right_space = st.columns(
         [1, 2, 1],
         gap="small"
     )
 
 
-    # ========================================================
-    # LOGIN CARD
-    # ========================================================
-
     with center:
 
+        # ----------------------------------------------------
+        # CARD
+        # ----------------------------------------------------
+
         st.markdown(
-            """
-            <div class="login-card">
-            """,
+            '<div class="login-card">',
             unsafe_allow_html=True
         )
 
 
         # ----------------------------------------------------
-        # CAMERA IMAGE
+        # CAMERA
         # ----------------------------------------------------
-
-        camera_path = Path(__file__).parent / "camera.png"
-
 
         if camera_path.exists():
 
-            # Use Streamlit image inside centered column
-            image_col1, image_col2, image_col3 = st.columns(
-                [1, 2, 1]
-            )
+            try:
 
-            with image_col2:
+                # Convert image to base64
+                import base64
 
-                st.image(
-                    str(camera_path),
-                    width=72
+                with open(camera_path, "rb") as image_file:
+
+                    image_data = base64.b64encode(
+                        image_file.read()
+                    ).decode("utf-8")
+
+
+                image_html = f"""
+                <div class="logo-area">
+
+                    <div class="logo-box">
+
+                        <img
+                            src="data:image/png;base64,{image_data}"
+                        >
+
+                    </div>
+
+                </div>
+                """
+
+
+                st.markdown(
+                    image_html,
+                    unsafe_allow_html=True
+                )
+
+
+            except Exception:
+
+                st.markdown(
+                    """
+                    <div class="logo-area">
+
+                        <div class="logo-box">
+
+                            <div style="
+                                font-size:45px;
+                                line-height:1;
+                            ">
+                                📹
+                            </div>
+
+                        </div>
+
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
         else:
 
             st.markdown(
                 """
-                <div class="camera-container">
-                    <span style="
-                        font-size:34px;
-                        line-height:1;
-                    ">
-                        📹
-                    </span>
+                <div class="logo-area">
+
+                    <div class="logo-box">
+
+                        <div style="
+                            font-size:45px;
+                            line-height:1;
+                        ">
+                            📹
+                        </div>
+
+                    </div>
+
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -493,8 +662,15 @@ def login():
         st.markdown(
             """
             <div class="login-title">
-                <span class="dvr-text">DVR</span>
-                <span class="monitor-text"> Monitor</span>
+
+                <span class="dvr">
+                    DVR
+                </span>
+
+                <span class="monitor">
+                    Monitor
+                </span>
+
             </div>
             """,
             unsafe_allow_html=True
@@ -527,7 +703,8 @@ def login():
 
             username = st.text_input(
                 "Username",
-                placeholder="Enter your username"
+                placeholder="Enter your username",
+                key="login_username"
             )
 
 
@@ -537,13 +714,14 @@ def login():
 
             password = st.text_input(
                 "Password",
+                placeholder="Enter your password",
                 type="password",
-                placeholder="Enter your password"
+                key="login_password"
             )
 
 
             # ------------------------------------------------
-            # LOGIN BUTTON
+            # SIGN IN
             # ------------------------------------------------
 
             login_button = st.form_submit_button(
@@ -574,7 +752,7 @@ def login():
 
 
                 # ---------------------------------------------
-                # SUCCESS
+                # CHECK LOGIN
                 # ---------------------------------------------
 
                 if (
@@ -591,10 +769,6 @@ def login():
                     st.rerun()
 
 
-                # ---------------------------------------------
-                # WRONG LOGIN
-                # ---------------------------------------------
-
                 else:
 
                     st.error(
@@ -602,26 +776,34 @@ def login():
                     )
 
 
-        # ----------------------------------------------------
-        # FOOTER
-        # ----------------------------------------------------
+        # ====================================================
+        # SECURITY FOOTER
+        # ====================================================
 
         st.markdown(
             """
-            <div class="secure-text">
-                Secure DVR Monitoring System
+            <div class="security-area">
+
+                <div class="security-line"></div>
+
+                <div class="security-text">
+                    Secure DVR Monitoring System
+                </div>
+
+                <div class="security-line"></div>
+
             </div>
             """,
             unsafe_allow_html=True
         )
 
 
-        # Close card
+        # ----------------------------------------------------
+        # CLOSE CARD
+        # ----------------------------------------------------
 
         st.markdown(
-            """
-            </div>
-            """,
+            "</div>",
             unsafe_allow_html=True
         )
 
@@ -658,6 +840,16 @@ def logout():
 
         st.session_state.pop(
             "username",
+            None
+        )
+
+        st.session_state.pop(
+            "login_username",
+            None
+        )
+
+        st.session_state.pop(
+            "login_password",
             None
         )
 
