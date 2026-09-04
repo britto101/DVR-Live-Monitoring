@@ -1,4 +1,19 @@
 import streamlit as st
+from pathlib import Path
+
+
+# ============================================================
+# PAGE CONFIGURATION
+# ============================================================
+
+def configure_login_page():
+
+    st.set_page_config(
+        page_title="DVR Monitor",
+        page_icon="📹",
+        layout="centered",
+        initial_sidebar_state="collapsed"
+    )
 
 
 # ============================================================
@@ -7,23 +22,15 @@ import streamlit as st
 
 def login():
 
+    # --------------------------------------------------------
     # Already logged in
+    # --------------------------------------------------------
+
     if st.session_state.get("logged_in", False):
         return True
 
     # --------------------------------------------------------
-    # PAGE CONFIG
-    # --------------------------------------------------------
-
-    st.set_page_config(
-        page_title="DVR Monitor",
-        page_icon="🔐",
-        layout="centered",
-        initial_sidebar_state="collapsed"
-    )
-
-    # --------------------------------------------------------
-    # DARK LOGIN UI
+    # LOGIN PAGE CSS
     # --------------------------------------------------------
 
     st.markdown(
@@ -31,15 +38,15 @@ def login():
         <style>
 
         /* ==================================================
-           FULL PAGE BACKGROUND
+           COMPLETE PAGE
            ================================================== */
 
         [data-testid="stAppViewContainer"] {
             background:
                 radial-gradient(
-                    circle at center,
+                    circle at 50% 40%,
                     #151d2b 0%,
-                    #0d121b 45%,
+                    #0d121b 48%,
                     #080b11 100%
                 );
         }
@@ -48,62 +55,70 @@ def login():
             background: transparent;
         }
 
-        /* Hide sidebar on login page */
-        [data-testid="stSidebar"] {
-            display: none;
+        /* Hide Streamlit footer */
+        footer {
+            visibility: hidden;
         }
 
-        /* Main content */
+        /* Remove unnecessary top spacing */
         .block-container {
             max-width: 100% !important;
             padding-top: 0 !important;
             padding-bottom: 0 !important;
         }
 
+
         /* ==================================================
-           LOGIN FORM / CARD
+           LOGIN CARD
            ================================================== */
 
         div[data-testid="stForm"] {
+
             width: 430px !important;
-            max-width: calc(100vw - 32px) !important;
 
-            margin: 90px auto 0 auto !important;
+            max-width: calc(100vw - 30px) !important;
 
-            padding: 38px 38px 32px 38px !important;
+            margin: 75px auto 0 auto !important;
+
+            padding: 34px 38px 30px 38px !important;
+
+            box-sizing: border-box !important;
 
             background:
                 linear-gradient(
                     145deg,
                     rgba(24, 32, 46, 0.98),
-                    rgba(15, 21, 31, 0.98)
-                );
+                    rgba(14, 20, 30, 0.98)
+                ) !important;
 
             border: 1px solid #35445a !important;
-            border-radius: 14px !important;
+
+            border-radius: 15px !important;
 
             box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.55),
-                0 0 35px rgba(0, 110, 255, 0.06);
-
-            box-sizing: border-box !important;
+                0 22px 65px rgba(0, 0, 0, 0.55),
+                0 0 35px rgba(0, 110, 255, 0.06) !important;
         }
 
+
         /* ==================================================
-           LOGO
+           CAMERA LOGO AREA
            ================================================== */
 
-        .login-logo {
-            width: 68px;
-            height: 68px;
+        .camera-logo {
+
+            width: 72px;
+            height: 72px;
 
             margin: 0 auto 18px auto;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
-            border-radius: 16px;
+            border-radius: 17px;
 
             background:
                 linear-gradient(
@@ -115,24 +130,42 @@ def login():
             border: 1px solid #329dff;
 
             box-shadow:
-                0 8px 25px rgba(0, 110, 255, 0.30);
-
-            font-size: 34px;
+                0 8px 28px rgba(0, 110, 255, 0.30);
         }
+
+        .camera-logo img {
+
+            width: 48px;
+            height: 48px;
+
+            object-fit: contain;
+
+            display: block;
+        }
+
 
         /* ==================================================
            TITLE
            ================================================== */
 
         .login-title {
+
             text-align: center;
 
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
             font-size: 29px;
+
             font-weight: 700;
 
-            color: #f5f7fa;
+            line-height: 1.2;
 
             margin: 0;
+
             padding: 0;
         }
 
@@ -144,31 +177,38 @@ def login():
             color: #f5f7fa;
         }
 
+
         /* ==================================================
            SUBTITLE
            ================================================== */
 
         .login-subtitle {
-            text-align: center;
 
-            font-size: 14px;
+            text-align: center;
 
             color: #8995a7;
 
-            margin-top: 8px;
+            font-size: 13.5px;
+
+            margin-top: 9px;
+
             margin-bottom: 27px;
         }
 
+
         /* ==================================================
-           LABELS
+           INPUT LABELS
            ================================================== */
 
         div[data-testid="stTextInput"] label {
-            color: #d7dde7 !important;
 
-            font-size: 14px !important;
+            color: #d8dee8 !important;
+
+            font-size: 13.5px !important;
+
             font-weight: 500 !important;
         }
+
 
         /* ==================================================
            INPUT BOXES
@@ -189,15 +229,16 @@ def login():
             font-size: 14px !important;
 
             padding-left: 13px !important;
-        }
 
-        /* Placeholder */
+            box-sizing: border-box !important;
+        }
 
         div[data-testid="stTextInput"] input::placeholder {
-            color: #697587 !important;
-        }
 
-        /* Input focus */
+            color: #687588 !important;
+
+            opacity: 1 !important;
+        }
 
         div[data-testid="stTextInput"] input:focus {
 
@@ -208,17 +249,21 @@ def login():
                 0 0 12px rgba(22, 140, 255, 0.12) !important;
         }
 
+
         /* ==================================================
            LOGIN BUTTON
            ================================================== */
+
+        div[data-testid="stFormSubmitButton"] {
+
+            margin-top: 10px !important;
+        }
 
         div[data-testid="stFormSubmitButton"] button {
 
             width: 100% !important;
 
             height: 47px !important;
-
-            margin-top: 13px !important;
 
             border-radius: 8px !important;
 
@@ -231,7 +276,7 @@ def login():
                     #0969e8
                 ) !important;
 
-            color: white !important;
+            color: #ffffff !important;
 
             font-size: 15px !important;
 
@@ -240,10 +285,10 @@ def login():
             box-shadow:
                 0 7px 20px rgba(0, 110, 255, 0.22) !important;
 
-            transition: all 0.15s ease !important;
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease !important;
         }
-
-        /* Button hover */
 
         div[data-testid="stFormSubmitButton"] button:hover {
 
@@ -256,11 +301,12 @@ def login():
 
             border-color: #2196ff !important;
 
-            transform: translateY(-1px);
+            transform: translateY(-1px) !important;
 
             box-shadow:
-                0 9px 25px rgba(0, 110, 255, 0.32) !important;
+                0 10px 26px rgba(0, 110, 255, 0.32) !important;
         }
+
 
         /* ==================================================
            FOOTER
@@ -272,17 +318,17 @@ def login():
 
             align-items: center;
 
+            justify-content: center;
+
             gap: 12px;
 
-            margin-top: 28px;
+            margin-top: 26px;
 
             color: #687487;
 
-            font-size: 12px;
+            font-size: 11.5px;
 
-            text-align: center;
-
-            justify-content: center;
+            white-space: nowrap;
         }
 
         .login-footer::before,
@@ -292,25 +338,29 @@ def login():
 
             height: 1px;
 
-            flex: 1;
+            width: 55px;
 
             background: #293547;
         }
 
+
         /* ==================================================
-           ERROR
+           ERROR MESSAGE
            ================================================== */
 
         div[data-testid="stAlert"] {
+
+            margin-top: 15px !important;
+
+            border-radius: 8px !important;
 
             background: #28171b !important;
 
             border: 1px solid #71343d !important;
 
             color: #ffb4bd !important;
-
-            border-radius: 8px !important;
         }
+
 
         /* ==================================================
            MOBILE
@@ -331,9 +381,19 @@ def login():
                 font-size: 26px;
             }
 
-            .login-logo {
-                width: 62px;
-                height: 62px;
+            .camera-logo {
+                width: 64px;
+                height: 64px;
+            }
+
+            .camera-logo img {
+                width: 43px;
+                height: 43px;
+            }
+
+            .login-footer::before,
+            .login-footer::after {
+                width: 35px;
             }
         }
 
@@ -342,23 +402,67 @@ def login():
         unsafe_allow_html=True
     )
 
+
+    # ========================================================
+    # CAMERA IMAGE
+    # ========================================================
+
+    camera_path = (
+        Path(__file__).parent
+        / "assets"
+        / "camera.png"
+    )
+
+
     # ========================================================
     # LOGIN CARD
     # ========================================================
 
     with st.form("login_form"):
 
-        # Logo
-        st.markdown(
-            """
-            <div class="login-logo">
-                📹
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # ----------------------------------------------------
+        # CAMERA LOGO
+        # ----------------------------------------------------
 
-        # Title
+        if camera_path.exists():
+
+            with open(camera_path, "rb") as image_file:
+
+                import base64
+
+                image_base64 = base64.b64encode(
+                    image_file.read()
+                ).decode()
+
+            st.markdown(
+                f"""
+                <div class="camera-logo">
+                    <img
+                        src="data:image/png;base64,{image_base64}"
+                        alt="DVR Camera"
+                    >
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        else:
+
+            # Fallback if image is missing
+            st.markdown(
+                """
+                <div class="camera-logo">
+                    <span style="font-size:36px;">📹</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+        # ----------------------------------------------------
+        # TITLE
+        # ----------------------------------------------------
+
         st.markdown(
             """
             <div class="login-title">
@@ -369,7 +473,11 @@ def login():
             unsafe_allow_html=True
         )
 
-        # Subtitle
+
+        # ----------------------------------------------------
+        # SUBTITLE
+        # ----------------------------------------------------
+
         st.markdown(
             """
             <div class="login-subtitle">
@@ -379,40 +487,57 @@ def login():
             unsafe_allow_html=True
         )
 
-        # Username
+
+        # ----------------------------------------------------
+        # USERNAME
+        # ----------------------------------------------------
+
         username = st.text_input(
             "Username",
             placeholder="Enter your username"
         )
 
-        # Password
+
+        # ----------------------------------------------------
+        # PASSWORD
+        # ----------------------------------------------------
+
         password = st.text_input(
             "Password",
             type="password",
             placeholder="Enter your password"
         )
 
-        # Login button
+
+        # ----------------------------------------------------
+        # SIGN IN
+        # ----------------------------------------------------
+
         login_button = st.form_submit_button(
             "Sign In  →",
             use_container_width=True
         )
 
-        # ====================================================
+
+        # ----------------------------------------------------
         # LOGIN CHECK
-        # ====================================================
+        # ----------------------------------------------------
 
         if login_button:
 
             try:
+
                 correct_username = st.secrets["USERNAME"]
                 correct_password = st.secrets["PASSWORD"]
 
             except Exception:
+
                 st.error(
                     "⚠️ Login credentials are not configured."
                 )
+
                 return False
+
 
             if (
                 username.strip() == correct_username
@@ -420,7 +545,10 @@ def login():
             ):
 
                 st.session_state["logged_in"] = True
-                st.session_state["username"] = username.strip()
+
+                st.session_state["username"] = (
+                    username.strip()
+                )
 
                 st.rerun()
 
@@ -430,7 +558,11 @@ def login():
                     "❌ Invalid username or password"
                 )
 
-        # Footer
+
+        # ----------------------------------------------------
+        # FOOTER
+        # ----------------------------------------------------
+
         st.markdown(
             """
             <div class="login-footer">
@@ -439,6 +571,7 @@ def login():
             """,
             unsafe_allow_html=True
         )
+
 
     return False
 
@@ -456,7 +589,7 @@ def logout():
 
     st.sidebar.markdown("---")
 
-    st.sidebar.write(
+    st.sidebar.markdown(
         f"👤 **{username}**"
     )
 
