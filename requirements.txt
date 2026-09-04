@@ -3,3 +3,4 @@ streamlit-autorefresh
 streamlit-autorefresh>=1.0.1
 pandas
 openpyxl
+python-dotenv
