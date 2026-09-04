@@ -12,6 +12,22 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+from login import login, logout
+
+
+# ============================================================
+# LOGIN
+# ============================================================
+
+if not login():
+    st.stop()
+
+
+# ============================================================
+# LOGOUT BUTTON
+# ============================================================
+
+logout()
 
 
 # ============================================================
