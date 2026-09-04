@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LOGIN_USERNAME = admin
-LOGIN_PASSWORD = admin123
+LOGIN_USERNAME = "admin"
+LOGIN_PASSWORD = "admin123"
 
 
 # ============================================================
