@@ -32,7 +32,7 @@ def login():
 
 
     # ========================================================
-    # LOGIN PAGE CSS
+    # LOGIN PAGE STYLE
     # ========================================================
 
     st.markdown(
@@ -40,38 +40,36 @@ def login():
         <style>
 
         /* ==================================================
-           FULL PAGE
+           FULL PAGE BACKGROUND
            ================================================== */
 
         [data-testid="stAppViewContainer"] {
 
             background:
                 radial-gradient(
-                    circle at 50% 45%,
-                    #172131 0%,
-                    #0e141e 42%,
-                    #080b11 100%
+                    circle at 50% 42%,
+                    #182334 0%,
+                    #0f1724 45%,
+                    #080c13 100%
                 );
 
             min-height: 100vh;
         }
 
 
-        /* Transparent Streamlit header */
-
         [data-testid="stHeader"] {
             background: transparent !important;
         }
 
 
-        /* Hide footer */
+        /* Hide Streamlit footer */
 
         footer {
             visibility: hidden;
         }
 
 
-        /* Remove unnecessary spacing */
+        /* Remove default page spacing */
 
         .block-container {
 
@@ -79,20 +77,21 @@ def login():
 
             padding-top: 0 !important;
             padding-bottom: 0 !important;
+
             padding-left: 0 !important;
             padding-right: 0 !important;
         }
 
 
         /* ==================================================
-           LOGIN FORM / CARD
+           LOGIN CARD
            ================================================== */
 
         div[data-testid="stForm"] {
 
             width: 430px !important;
 
-            max-width: calc(100vw - 30px) !important;
+            max-width: calc(100vw - 32px) !important;
 
             margin: 75px auto 0 auto !important;
 
@@ -103,17 +102,17 @@ def login():
             background:
                 linear-gradient(
                     145deg,
-                    rgba(24, 32, 46, 0.98),
-                    rgba(13, 19, 29, 0.98)
+                    #182231,
+                    #101722
                 ) !important;
 
-            border: 1px solid #35445a !important;
+            border: 1px solid #34445a !important;
 
             border-radius: 15px !important;
 
             box-shadow:
-                0 24px 65px rgba(0, 0, 0, 0.60),
-                0 0 35px rgba(0, 120, 255, 0.07) !important;
+                0 25px 70px rgba(0, 0, 0, 0.58),
+                0 0 35px rgba(0, 120, 255, 0.06) !important;
         }
 
 
@@ -129,10 +128,9 @@ def login():
             margin: 0 auto 18px auto;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
-
-            border-radius: 17px;
 
             background:
                 linear-gradient(
@@ -143,6 +141,8 @@ def login():
 
             border: 1px solid #329dff;
 
+            border-radius: 17px;
+
             box-shadow:
                 0 8px 28px rgba(0, 110, 255, 0.30);
 
@@ -150,14 +150,32 @@ def login():
         }
 
 
+        /* Camera image */
+
         .camera-logo img {
 
-            width: 50px;
-            height: 50px;
+            width: 54px;
+            height: 54px;
 
             object-fit: contain;
 
             display: block;
+
+            background: transparent;
+
+            border: none;
+
+            outline: none;
+        }
+
+
+        /* Fallback */
+
+        .fallback-camera {
+
+            font-size: 34px;
+
+            line-height: 1;
         }
 
 
@@ -182,6 +200,7 @@ def login():
             line-height: 1.2;
 
             margin: 0;
+
             padding: 0;
         }
 
@@ -208,7 +227,10 @@ def login():
 
             font-size: 13.5px;
 
+            line-height: 1.5;
+
             margin-top: 9px;
+
             margin-bottom: 27px;
         }
 
@@ -228,16 +250,16 @@ def login():
 
 
         /* ==================================================
-           INPUT BOXES
+           INPUT BOX
            ================================================== */
 
         div[data-testid="stTextInput"] input {
 
             height: 46px !important;
 
-            background: #151e2b !important;
+            background: #141d2a !important;
 
-            color: #eef2f7 !important;
+            color: #f1f5f9 !important;
 
             border: 1px solid #39485d !important;
 
@@ -261,7 +283,7 @@ def login():
         }
 
 
-        /* Focus */
+        /* Input focus */
 
         div[data-testid="stTextInput"] input:focus {
 
@@ -273,13 +295,15 @@ def login():
         }
 
 
-        /* ==================================================
-           PASSWORD EYE ICON
-           ================================================== */
+        /* Password eye icon */
 
         div[data-testid="stTextInput"] button {
 
             color: #8995a7 !important;
+
+            background: transparent !important;
+
+            border: none !important;
         }
 
 
@@ -325,7 +349,7 @@ def login():
         }
 
 
-        /* Hover */
+        /* Button hover */
 
         div[data-testid="stFormSubmitButton"] button:hover {
 
@@ -374,8 +398,6 @@ def login():
 
             content: "";
 
-            display: block;
-
             width: 55px;
 
             height: 1px;
@@ -385,7 +407,7 @@ def login():
 
 
         /* ==================================================
-           ERROR MESSAGE
+           ERROR
            ================================================== */
 
         div[data-testid="stAlert"] {
@@ -397,8 +419,6 @@ def login():
             background: #28171b !important;
 
             border: 1px solid #71343d !important;
-
-            color: #ffb4bd !important;
         }
 
 
@@ -427,8 +447,8 @@ def login():
 
             .camera-logo img {
 
-                width: 44px;
-                height: 44px;
+                width: 46px;
+                height: 46px;
             }
 
 
@@ -484,10 +504,12 @@ def login():
                 st.markdown(
                     f"""
                     <div class="camera-logo">
+
                         <img
                             src="data:image/png;base64,{image_base64}"
                             alt="DVR Camera"
                         >
+
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -498,7 +520,9 @@ def login():
                 st.markdown(
                     """
                     <div class="camera-logo">
-                        <span style="font-size:34px;">📹</span>
+                        <span class="fallback-camera">
+                            📹
+                        </span>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -506,12 +530,12 @@ def login():
 
         else:
 
-            # Fallback if camera.png is not found
-
             st.markdown(
                 """
                 <div class="camera-logo">
-                    <span style="font-size:34px;">📹</span>
+                    <span class="fallback-camera">
+                        📹
+                    </span>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -525,8 +549,10 @@ def login():
         st.markdown(
             """
             <div class="login-title">
+
                 <span class="dvr">DVR</span>
                 <span class="monitor"> Monitor</span>
+
             </div>
             """,
             unsafe_allow_html=True
@@ -579,7 +605,7 @@ def login():
 
 
         # ====================================================
-        # LOGIN CHECK
+        # LOGIN VALIDATION
         # ====================================================
 
         if login_button:
@@ -599,7 +625,7 @@ def login():
 
 
             # ------------------------------------------------
-            # CORRECT LOGIN
+            # SUCCESS
             # ------------------------------------------------
 
             if (
@@ -617,7 +643,7 @@ def login():
 
 
             # ------------------------------------------------
-            # WRONG LOGIN
+            # INVALID LOGIN
             # ------------------------------------------------
 
             else:
